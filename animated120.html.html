@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>5-JB Compound - Jitterbug Animation</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: system-ui, sans-serif;
+            background: #0a0a12;
+            color: #eee;
+            overflow: hidden;
+        }
+        #controls {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            background: rgba(18, 18, 26, 0.9);
+            padding: 15px;
+            border-radius: 8px;
+            z-index: 100;
+            width: 200px;
+        }
+        h1 { font-size: 1rem; color: #7af; margin-bottom: 10px; }
+        .control-row { margin: 8px 0; font-size: 0.85rem; }
+        .control-row label { display: block; margin-bottom: 4px; color: #888; }
+        input[type="range"] { width: 100%; }
+        input[type="checkbox"] { margin-right: 8px; }
+        .value { color: #7af; font-weight: bold; }
+        button {
+            background: #335;
+            color: #fff;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 6px;
+            width: 100%;
+            font-size: 0.8rem;
+        }
+        button:hover { background: #447; }
+        #canvas-container { width: 100vw; height: 100vh; }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <h1>5-JB Compound Jitterbug</h1>
+        <div class="control-row">
+            <label><input type="checkbox" id="animateCheck" checked> Animate</label>
+        </div>
+        <div class="control-row">
+            <label>JB Angle: <span id="angleValue" class="value">60°</span></label>
+            <input type="range" id="angleSlider" min="0" max="360" value="60" step="1">
+        </div>
+        <div class="control-row">
+            <label>Speed: <span id="speedValue" class="value">0.35</span></label>
+            <input type="range" id="speedSlider" min="0.05" max="2" value="0.35" step="0.05">
+        </div>
+        <div class="control-row">
+            <label><input type="checkbox" id="allowIntersect"> Allow Intersect</label>
+        </div>
+        <div class="control-row">
+            <label><input type="checkbox" id="showEdges" checked> Show Edges</label>
+        </div>
+        <div class="control-row">
+            <label><input type="checkbox" id="showFaces" checked> Show Faces</label>
+        </div>
+        <div class="control-row">
+            <label><input type="checkbox" id="showGaps" checked> Show Gap Triangles</label>
+        </div>
+        <div class="control-row">
+            <label><input type="checkbox" id="autoRotate" checked> Auto Rotate View</label>
+        </div>
+        <div class="control-row" style="border-top: 1px solid #333; padding-top: 8px; margin-top: 8px;">
+            <label style="color: #ff6666;"><input type="checkbox" id="showOct1" checked> Octahedron 1</label>
+        </div>
+        <div class="control-row">
+            <label style="color: #66ff66;"><input type="checkbox" id="showOct2" checked> Octahedron 2</label>
+        </div>
+        <div class="control-row">
+            <label style="color: #6666ff;"><input type="checkbox" id="showOct3" checked> Octahedron 3</label>
+        </div>
+        <div class="control-row">
+            <label style="color: #ffff66;"><input type="checkbox" id="showOct4" checked> Octahedron 4</label>
+        </div>
+        <div class="control-row">
+            <label style="color: #ff66ff;"><input type="checkbox" id="showOct5" checked> Octahedron 5</label>
+        </div>
+        <button id="resetBtn">Octahedron (60°)</button>
+        <button id="icosaBtn">Icosahedron (22°)</button>
+        <button id="cuboctaBtn">Cuboctahedron (0°)</button>
+    </div>
+    <div id="canvas-container"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // === CONFIGURATION ===
+        const EL = 1.0;  // Edge length
+        const PHI = (1 + Math.sqrt(5)) / 2;  // Golden ratio
+        
+        // Icosahedral 5-fold axis (normalized)
+        const FIVE_FOLD_AXIS = new THREE.Vector3(0, 1, PHI).normalize();
+        
+        // Colors for each of the 5 octahedra
+        const COLORS = [
+            0xff6666,  // red
+            0x66ff66,  // green
+            0x6666ff,  // blue
+            0xffff66,  // yellow
+            0xff66ff   // magenta
+        ];
+
+        // === THREE.JS SETUP ===
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0a0a12);
+        
+        const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 0, 4);
+        camera.lookAt(0, 0, 0);
+        
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        container.appendChild(renderer.domElement);
+        
+        // Lighting
+        scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+        const light1 = new THREE.DirectionalLight(0xffffff, 0.8);
+        light1.position.set(5, 5, 5);
+        scene.add(light1);
+        const light2 = new THREE.DirectionalLight(0xffffff, 0.3);
+        light2.position.set(-5, -5, 5);
+        scene.add(light2);
+
+        // Main group for view rotation
+        const mainGroup = new THREE.Group();
+        scene.add(mainGroup);
+
+        // === JITTERBUG GEOMETRY ===
+        
+        function makeJBFace(v1, v2, v3, faceMat, showEdges, showFaces) {
+            const group = new THREE.Group();
+            
+            // Face centroid (normalized) = hinge axis
+            const fc = new THREE.Vector3().add(v1).add(v2).add(v3).divideScalar(3.0);
+            fc.normalize();
+            group.userData = fc;
+            
+            // Store original vertices for reference
+            group.userData.vertices = [v1.clone(), v2.clone(), v3.clone()];
+            
+            // 3 edges as simple lines
+            if (showEdges) {
+                const edgeMaterial = new THREE.LineBasicMaterial({ color: 0x000000 });
+                const points = [v1, v2, v3, v1];
+                const edgeGeom = new THREE.BufferGeometry().setFromPoints(points);
+                const edgeLine = new THREE.Line(edgeGeom, edgeMaterial);
+                group.add(edgeLine);
+            }
+            
+            // Triangle face
+            if (showFaces) {
+                const geom = new THREE.BufferGeometry();
+                geom.setFromPoints([v1, v2, v3]);
+                geom.computeVertexNormals();
+                const mesh = new THREE.Mesh(geom, faceMat);
+                group.add(mesh);
+            }
+            
+            return group;
+        }
+        
+        function makeJB(color, showEdges, showFaces, showGaps) {
+            const group = new THREE.Group();
+            
+            // Face material
+            const faceMat = new THREE.MeshStandardMaterial({
+                color: color,
+                side: THREE.DoubleSide,
+                roughness: 0.6,
+                metalness: 0.1,
+            });
+            
+            // Gap triangle material (same color as octahedron)
+            const gapMat = new THREE.MeshStandardMaterial({
+                color: color,
+                side: THREE.DoubleSide,
+                roughness: 0.6,
+                metalness: 0.1,
+            });
+            
+            // Octahedron vertices (matching makeJB.js)
+            const ov = [
+                new THREE.Vector3(0.5 * EL, 0.5 * EL, 0.0),
+                new THREE.Vector3(-0.5 * EL, 0.5 * EL, 0.0),
+                new THREE.Vector3(-0.5 * EL, -0.5 * EL, 0.0),
+                new THREE.Vector3(0.5 * EL, -0.5 * EL, 0.0),
+                new THREE.Vector3(0.0, 0.0, EL / Math.sqrt(2.0)),
+                new THREE.Vector3(0.0, 0.0, -EL / Math.sqrt(2.0))
+            ];
+            
+            // 8 faces (matching makeJB.js order)
+            const faceIndices = [
+                [0, 1, 4], [1, 2, 4], [2, 3, 4], [3, 0, 4],  // top 4
+                [0, 3, 5], [3, 2, 5], [2, 1, 5], [1, 0, 5]   // bottom 4
+            ];
+            
+            // Store face groups for gap triangle creation
+            const faceGroups = [];
+            
+            faceIndices.forEach(([i, j, k]) => {
+                const face = makeJBFace(ov[i], ov[j], ov[k], faceMat, showEdges, showFaces);
+                faceGroups.push(face);
+                group.add(face);
+            });
+            
+            // Store face groups for gap triangle updates
+            group.userData.faceGroups = faceGroups;
+            group.userData.originalVertices = ov;
+            group.userData.faceIndices = faceIndices;
+            group.userData.gapMat = gapMat;
+            
+            // 12 gap triangles - one per edge
+            // Each gap triangle has: 1 meeting vertex (shared), 2 split vertices (one from each face)
+            const gapTriangleSpecs = [
+                { meeting: 0, split: 1, faceA: 0, faceB: 7 },  // edge 0
+                { meeting: 0, split: 3, faceA: 3, faceB: 4 },  // edge 1
+                { meeting: 4, split: 0, faceA: 0, faceB: 3 },  // edge 2
+                { meeting: 5, split: 0, faceA: 4, faceB: 7 },  // edge 3
+                { meeting: 2, split: 1, faceA: 1, faceB: 6 },  // edge 4
+                { meeting: 1, split: 4, faceA: 0, faceB: 1 },  // edge 5
+                { meeting: 1, split: 5, faceA: 6, faceB: 7 },  // edge 6
+                { meeting: 2, split: 3, faceA: 2, faceB: 5 },  // edge 7
+                { meeting: 4, split: 2, faceA: 1, faceB: 2 },  // edge 8
+                { meeting: 5, split: 2, faceA: 5, faceB: 6 },  // edge 9
+                { meeting: 3, split: 4, faceA: 2, faceB: 3 },  // edge 10
+                { meeting: 3, split: 5, faceA: 4, faceB: 5 },  // edge 11
+            ];
+            
+            group.userData.gapTriangleSpecs = gapTriangleSpecs;
+            
+            // Create 12 gap triangle meshes
+            const gapTriangles = [];
+            for (let i = 0; i < 12; i++) {
+                const geom = new THREE.BufferGeometry();
+                const positions = new Float32Array(9); // 3 vertices × 3 coords
+                geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+                geom.setIndex([0, 1, 2]);
+                const mesh = new THREE.Mesh(geom, gapMat);
+                mesh.visible = showGaps;
+                gapTriangles.push(mesh);
+                group.add(mesh);
+            }
+            group.userData.gapTriangles = gapTriangles;
+            
+            return group;
+        }
+        
+        function make5JBCompound(showEdges, showFaces, showGaps) {
+            const compound = new THREE.Group();
+            
+            for (let i = 0; i < 5; i++) {
+                const jb = makeJB(COLORS[i], showEdges, showFaces, showGaps);
+                
+                // Rotate by 72° * i around the 5-fold axis
+                const angle = (72 * i) * Math.PI / 180;
+                jb.quaternion.setFromAxisAngle(FIVE_FOLD_AXIS, angle);
+                
+                // Store the base rotation for animation
+                jb.userData.baseQuaternion = jb.quaternion.clone();
+                jb.userData.index = i;
+                
+                compound.add(jb);
+            }
+            
+            return compound;
+        }
+
+        // === STATE ===
+        let compound = null;
+        let jbCurrentAngle = 60.0;
+        let jbInitialRadius = Math.sqrt(2/3) * Math.cos(Math.PI / 180 * 60);
+        let animationOn = true;
+        let allowIntersect = false;
+        let speed = 0.35;
+        let showEdges = true;
+        let showFaces = true;
+        let showGaps = true;
+        let autoRotate = true;
+        let octVisibility = [true, true, true, true, true];
+
+        function rebuildCompound() {
+            if (compound) {
+                mainGroup.remove(compound);
+            }
+            compound = make5JBCompound(showEdges, showFaces, showGaps);
+            mainGroup.add(compound);
+            updateOctVisibility();
+        }
+        
+        function updateOctVisibility() {
+            if (!compound) return;
+            compound.children.forEach((oct, i) => {
+                oct.visible = octVisibility[i];
+            });
+        }
+
+        rebuildCompound();
+
+        // === ANIMATION ===
+        function updateJitterbug(angle) {
+            const currentRadius = Math.sqrt(2/3) * Math.cos(Math.PI / 180 * angle) - jbInitialRadius;
+            
+            // Update each of the 5 octahedra
+            compound.children.forEach((jb, jbIndex) => {
+                const faceGroups = jb.userData.faceGroups;
+                const gapTriangles = jb.userData.gapTriangles;
+                const faceIndices = jb.userData.faceIndices;
+                const originalVertices = jb.userData.originalVertices;
+                
+                if (!faceGroups) return;
+                
+                // First, update each face's transform
+                faceGroups.forEach((face, faceIndex) => {
+                    const hinge = face.userData;
+                    if (!hinge || !hinge.isVector3) return;
+                    
+                    // Alternating faces rotate opposite directions
+                    const direction = (faceIndex % 2 === 0) ? -1 : 1;
+                    const angleRad = (Math.PI / 180) * (angle - 60) * direction;
+                    
+                    face.quaternion.setFromAxisAngle(hinge, angleRad);
+                    
+                    const pos = hinge.clone().multiplyScalar(currentRadius);
+                    face.position.copy(pos);
+                });
+                
+                // Now update gap triangles (12 total - one per edge)
+                if (gapTriangles && jb.userData.gapTriangleSpecs) {
+                    const specs = jb.userData.gapTriangleSpecs;
+                    
+                    specs.forEach((spec, gapIndex) => {
+                        const { meeting, split, faceA, faceB } = spec;
+                        
+                        const faceAGroup = faceGroups[faceA];
+                        const faceBGroup = faceGroups[faceB];
+                        
+                        // Get hinge axes
+                        const hingeA = faceAGroup.userData;
+                        const hingeB = faceBGroup.userData;
+                        
+                        // Rotation directions
+                        const dirA = (faceA % 2 === 0) ? -1 : 1;
+                        const dirB = (faceB % 2 === 0) ? -1 : 1;
+                        
+                        const angleRadA = (Math.PI / 180) * (angle - 60) * dirA;
+                        const angleRadB = (Math.PI / 180) * (angle - 60) * dirB;
+                        
+                        const quatA = new THREE.Quaternion().setFromAxisAngle(hingeA, angleRadA);
+                        const quatB = new THREE.Quaternion().setFromAxisAngle(hingeB, angleRadB);
+                        
+                        const posA = hingeA.clone().multiplyScalar(currentRadius);
+                        const posB = hingeB.clone().multiplyScalar(currentRadius);
+                        
+                        // Meeting vertex (same position from either face - use face A)
+                        const meetingOrig = originalVertices[meeting].clone();
+                        const meetingWorld = meetingOrig.clone().applyQuaternion(quatA).add(posA);
+                        
+                        // Split vertex from face A
+                        const splitOrig = originalVertices[split].clone();
+                        const splitA = splitOrig.clone().applyQuaternion(quatA).add(posA);
+                        
+                        // Split vertex from face B
+                        const splitB = splitOrig.clone().applyQuaternion(quatB).add(posB);
+                        
+                        // Gap triangle: meeting, splitA, splitB
+                        const gapMesh = gapTriangles[gapIndex];
+                        const positions = gapMesh.geometry.attributes.position.array;
+                        
+                        positions[0] = meetingWorld.x; positions[1] = meetingWorld.y; positions[2] = meetingWorld.z;
+                        positions[3] = splitA.x; positions[4] = splitA.y; positions[5] = splitA.z;
+                        positions[6] = splitB.x; positions[7] = splitB.y; positions[8] = splitB.z;
+                        
+                        gapMesh.geometry.attributes.position.needsUpdate = true;
+                        gapMesh.geometry.computeVertexNormals();
+                    });
+                }
+            });
+        }
+
+        // === CONTROLS ===
+        const angleSlider = document.getElementById('angleSlider');
+        const angleValue = document.getElementById('angleValue');
+        const speedSlider = document.getElementById('speedSlider');
+        const speedValue = document.getElementById('speedValue');
+        const animateCheck = document.getElementById('animateCheck');
+        const allowIntersectCheck = document.getElementById('allowIntersect');
+        const showEdgesCheck = document.getElementById('showEdges');
+        const showFacesCheck = document.getElementById('showFaces');
+        const showGapsCheck = document.getElementById('showGaps');
+        const autoRotateCheck = document.getElementById('autoRotate');
+        const resetBtn = document.getElementById('resetBtn');
+        const icosaBtn = document.getElementById('icosaBtn');
+        
+        // Icosahedron angle (computed)
+        const ICOSAHEDRON_ANGLE = 22.238756;
+
+        angleSlider.addEventListener('input', (e) => {
+            jbCurrentAngle = parseFloat(e.target.value);
+            angleValue.textContent = jbCurrentAngle.toFixed(0) + '°';
+            updateJitterbug(jbCurrentAngle);
+        });
+
+        speedSlider.addEventListener('input', (e) => {
+            speed = parseFloat(e.target.value);
+            speedValue.textContent = speed.toFixed(2);
+        });
+
+        animateCheck.addEventListener('change', (e) => {
+            animationOn = e.target.checked;
+        });
+
+        allowIntersectCheck.addEventListener('change', (e) => {
+            allowIntersect = e.target.checked;
+        });
+
+        showEdgesCheck.addEventListener('change', (e) => {
+            showEdges = e.target.checked;
+            rebuildCompound();
+            updateJitterbug(jbCurrentAngle);
+        });
+
+        showFacesCheck.addEventListener('change', (e) => {
+            showFaces = e.target.checked;
+            rebuildCompound();
+            updateJitterbug(jbCurrentAngle);
+        });
+
+        showGapsCheck.addEventListener('change', (e) => {
+            showGaps = e.target.checked;
+            rebuildCompound();
+            updateJitterbug(jbCurrentAngle);
+        });
+
+        autoRotateCheck.addEventListener('change', (e) => {
+            autoRotate = e.target.checked;
+        });
+
+        // Octahedron visibility toggles
+        for (let i = 1; i <= 5; i++) {
+            document.getElementById(`showOct${i}`).addEventListener('change', (e) => {
+                octVisibility[i - 1] = e.target.checked;
+                updateOctVisibility();
+            });
+        }
+
+        resetBtn.addEventListener('click', () => {
+            jbCurrentAngle = 60;
+            angleSlider.value = 60;
+            angleValue.textContent = '60°';
+            updateJitterbug(60);
+        });
+
+        icosaBtn.addEventListener('click', () => {
+            jbCurrentAngle = ICOSAHEDRON_ANGLE;
+            angleSlider.value = ICOSAHEDRON_ANGLE;
+            angleValue.textContent = ICOSAHEDRON_ANGLE.toFixed(2) + '°';
+            updateJitterbug(ICOSAHEDRON_ANGLE);
+        });
+
+        const cuboctaBtn = document.getElementById('cuboctaBtn');
+        cuboctaBtn.addEventListener('click', () => {
+            jbCurrentAngle = 0;
+            angleSlider.value = 0;
+            angleValue.textContent = '0°';
+            updateJitterbug(0);
+        });
+
+        // Mouse drag rotation
+        let isDragging = false;
+        let prevMouse = { x: 0, y: 0 };
+
+        container.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            prevMouse = { x: e.clientX, y: e.clientY };
+        });
+
+        container.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                const dx = e.clientX - prevMouse.x;
+                const dy = e.clientY - prevMouse.y;
+                mainGroup.rotation.y += dx * 0.01;
+                mainGroup.rotation.x += dy * 0.01;
+                prevMouse = { x: e.clientX, y: e.clientY };
+            }
+        });
+
+        container.addEventListener('mouseup', () => isDragging = false);
+        container.addEventListener('mouseleave', () => isDragging = false);
+
+        // Resize
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // === RENDER LOOP ===
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            if (animationOn) {
+                jbCurrentAngle += speed;
+                
+                // Skip over intersection zones (Bob's behavior)
+                if (!allowIntersect) {
+                    if (jbCurrentAngle > 60 && jbCurrentAngle < 120) jbCurrentAngle = 120;
+                    if (jbCurrentAngle > 240 && jbCurrentAngle < 300) jbCurrentAngle = 300;
+                }
+                
+                if (jbCurrentAngle > 360) jbCurrentAngle = 0;
+                
+                angleSlider.value = jbCurrentAngle;
+                angleValue.textContent = jbCurrentAngle.toFixed(0) + '°';
+                
+                updateJitterbug(jbCurrentAngle);
+            }
+            
+            if (autoRotate && !isDragging) {
+                mainGroup.rotation.y += 0.003;
+            }
+            
+            renderer.render(scene, camera);
+        }
+
+        animate();
+    </script>
+</body>
+</html>
