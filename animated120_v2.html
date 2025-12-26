@@ -523,6 +523,18 @@
         container.addEventListener('mouseup', () => isDragging = false);
         container.addEventListener('mouseleave', () => isDragging = false);
 
+        // Mouse wheel zoom (also works with trackpad two-finger scroll)
+        container.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const zoomSpeed = 0.001;
+            const scaleFactor = 1 + e.deltaY * zoomSpeed;
+            mainGroup.scale.multiplyScalar(1 / scaleFactor);
+            // Clamp scale to reasonable range
+            const s = mainGroup.scale.x;
+            if (s < 0.1) mainGroup.scale.setScalar(0.1);
+            if (s > 10) mainGroup.scale.setScalar(10);
+        }, { passive: false });
+
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
