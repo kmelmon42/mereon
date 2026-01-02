@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>6 Icosahedra - Jitterbug</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: system-ui, sans-serif;
+            background: #000;
+            color: #eee;
+            overflow: hidden;
+        }
+        #controls {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            background: rgba(18, 18, 26, 0.9);
+            padding: 15px;
+            border-radius: 8px;
+            z-index: 100;
+            width: 240px;
+            max-height: calc(100vh - 30px);
+            overflow-y: auto;
+        }
+        h1 { font-size: 1rem; color: #7af; margin-bottom: 10px; }
+        .control-row { margin: 8px 0; font-size: 0.85rem; }
+        .control-row label { display: block; margin-bottom: 4px; color: #888; }
+        input[type="range"] { width: 100%; }
+        input[type="checkbox"] { margin-right: 8px; }
+        .value { color: #7af; font-weight: bold; }
+        button {
+            background: #335;
+            color: #fff;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 4px;
+            margin-right: 4px;
+            font-size: 0.75rem;
+        }
+        button:hover { background: #447; }
+        #canvas-container { width: 100vw; height: 100vh; }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <h1>6 Icosahedra - Jitterbug</h1>
+        <div class="control-row">
+            <label>JB Angle: <span id="jbAngleValue" class="value">22.24°</span></label>
+            <input type="range" id="jbAngleSlider" min="0" max="60" value="22.238756" step="0.1">
+        </div>
+        <div class="control-row">
+            <button id="btnOcta">Octahedron (60°)</button>
+            <button id="btnIcosa">Icosahedron (22.24°)</button>
+        </div>
+        <div class="control-row">
+            <label><input type="checkbox" id="showGaps"> Show Gap Triangles</label>
+        </div>
+        <div class="control-row" style="border-top: 1px solid #333; padding-top: 8px; margin-top: 8px;">
+            <label><input type="checkbox" id="autoRotate" checked> Auto Rotate View</label>
+        </div>
+        <div class="control-row">
+            <label><input type="checkbox" id="showEdges" checked> Show Edges</label>
+        </div>
+        <div class="control-row" style="border-top: 1px solid #333; padding-top: 8px; margin-top: 8px;">
+            <label style="color: #ff4444;"><input type="checkbox" id="show1" checked> Icosa 1 (JB)</label>
+        </div>
+        <div class="control-row">
+            <label style="color: #44ff44;"><input type="checkbox" id="show2" checked> Icosa 2</label>
+        </div>
+        <div class="control-row">
+            <label style="color: #4444ff;"><input type="checkbox" id="show3" checked> Icosa 3</label>
+        </div>
+        <div class="control-row">
+            <label style="color: #ffff44;"><input type="checkbox" id="show4" checked> Icosa 4</label>
+        </div>
+        <div class="control-row">
+            <label style="color: #ff44ff;"><input type="checkbox" id="show5" checked> Icosa 5</label>
+        </div>
+        <div class="control-row">
+            <label style="color: #44ffff;"><input type="checkbox" id="show6" checked> Icosa 6</label>
+        </div>
+        <div class="control-row" style="border-top: 1px solid #333; padding-top: 8px; margin-top: 8px;">
+            <label>5-fold rotation (0-4):</label>
+        </div>
+        <div class="control-row">
+            <label style="color: #ff4444;">1: <input type="number" id="rot1" min="0" max="4" value="0" style="width:40px"></label>
+            <label style="color: #44ff44;">2: <input type="number" id="rot2" min="0" max="4" value="0" style="width:40px"></label>
+            <label style="color: #4444ff;">3: <input type="number" id="rot3" min="0" max="4" value="0" style="width:40px"></label>
+        </div>
+        <div class="control-row">
+            <label style="color: #ffff44;">4: <input type="number" id="rot4" min="0" max="4" value="0" style="width:40px"></label>
+            <label style="color: #ff44ff;">5: <input type="number" id="rot5" min="0" max="4" value="0" style="width:40px"></label>
+            <label style="color: #44ffff;">6: <input type="number" id="rot6" min="0" max="4" value="0" style="width:40px"></label>
+        </div>
+    </div>
+    <div id="canvas-container"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        const PHI = (1 + Math.sqrt(5)) / 2;
+        const EL = 1.0;  // Edge length for jitterbug octahedron
+        const ICOSAHEDRON_ANGLE = 22.238756;  // Angle where JB forms icosahedron
+        
+        // Rotation to align jitterbugged icosahedron with red icosahedron position
+        // Computed: 68.34° around axis [-0.896, 0.064, 0.439]
+        const JB_ALIGN_QUAT = new THREE.Quaternion(
+            -0.503289,  // x
+            0.036125,   // y
+            0.246627,   // z
+            0.827388    // w
+        );
+        
+        // BASE alignment: takes jitterbug icosahedron to standard orientation
+        // (before compound positioning). Use this to compose with each icosa's compound rotation.
+        // Optimized to perfectly match static icosahedron vertices
+        const BASE_JB_ALIGN = new THREE.Quaternion(
+            -0.865690,  // x
+            0.024103,   // y
+            0.191342,   // z
+            0.461940    // w
+        );
+        
+        // Scale factor: jitterbug icosahedron has radius 0.951, static icosahedra have radius 1.0
+        const JB_SCALE = 1.051462;
+        
+        // 5-fold symmetry axis in jitterbug LOCAL coordinates (before BASE_JB_ALIGN)
+        // This is the axis through vertices 2 and 10 of the jitterbug icosahedron
+        const FIVE_FOLD_AXIS_LOCAL = new THREE.Vector3(0.371748, 0.371748, 0.850651).normalize();
+        
+        // 5 bisector axes for icosahedra 2-6
+        const BISECTOR_AXES = [
+            new THREE.Vector3(-0.9511, 0, -0.3090),
+            new THREE.Vector3(0.0000, 0, -1.0000),
+            new THREE.Vector3(0.9511, 0, -0.3090),
+            new THREE.Vector3(0.5878, 0, 0.8090),
+            new THREE.Vector3(-0.5878, 0, 0.8090),
+        ];
+        
+        const ICOSA_BISECTOR_IDX = [-1, 0, 1, 2, 3, 4];
+        const ALL_ROTATION = Math.atan(0.5) * 180 / Math.PI;  // atan(1/2) ≈ 26.565°
+        
+        const COLORS = [
+            0xff4444,  // red
+            0x44ff44,  // green
+            0x4444ff,  // blue
+            0xffff44,  // yellow
+            0xff44ff,  // magenta
+            0x44ffff,  // cyan
+        ];
+
+        // Three.js setup
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x000000);
+        
+        const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 0, 5);
+        
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        container.appendChild(renderer.domElement);
+        
+        // Lighting
+        scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+        const light1 = new THREE.DirectionalLight(0xffffff, 0.8);
+        light1.position.set(5, 5, 5);
+        scene.add(light1);
+        const light2 = new THREE.DirectionalLight(0xffffff, 0.3);
+        light2.position.set(-5, -5, 5);
+        scene.add(light2);
+
+        const mainGroup = new THREE.Group();
+        mainGroup.rotation.x = -Math.PI / 2;  // Orient so Y points toward camera
+        scene.add(mainGroup);
+
+        // === JITTERBUG FACE ===
+        function makeJBFace(v1, v2, v3, faceMat, showEdges) {
+            const group = new THREE.Group();
+            
+            // Face centroid (normalized) = hinge axis
+            const fc = new THREE.Vector3().add(v1).add(v2).add(v3).divideScalar(3.0);
+            fc.normalize();
+            group.userData = fc;
+            group.userData.vertices = [v1.clone(), v2.clone(), v3.clone()];
+            
+            // Edges
+            if (showEdges) {
+                const edgeMaterial = new THREE.LineBasicMaterial({ color: 0x000000 });
+                const points = [v1, v2, v3, v1];
+                const edgeGeom = new THREE.BufferGeometry().setFromPoints(points);
+                const edgeLine = new THREE.Line(edgeGeom, edgeMaterial);
+                group.add(edgeLine);
+            }
+            
+            // Triangle face
+            const geom = new THREE.BufferGeometry();
+            geom.setFromPoints([v1, v2, v3]);
+            geom.computeVertexNormals();
+            const mesh = new THREE.Mesh(geom, faceMat);
+            group.add(mesh);
+            
+            return group;
+        }
+
+        // === JITTERBUG OCTAHEDRON ===
+        function makeJitterbugOctahedron(color, showEdges, showGaps, index) {
+            const group = new THREE.Group();
+            
+            const faceMat = new THREE.MeshStandardMaterial({
+                color: color,
+                side: THREE.DoubleSide,
+                roughness: 0.6,
+                metalness: 0.1,
+            });
+            
+            const gapMat = new THREE.MeshStandardMaterial({
+                color: color,
+                side: THREE.DoubleSide,
+                roughness: 0.6,
+                metalness: 0.1,
+            });
+            
+            // Octahedron vertices - square base
+            const ov = [
+                new THREE.Vector3(0.5 * EL, 0.5 * EL, 0.0),
+                new THREE.Vector3(-0.5 * EL, 0.5 * EL, 0.0),
+                new THREE.Vector3(-0.5 * EL, -0.5 * EL, 0.0),
+                new THREE.Vector3(0.5 * EL, -0.5 * EL, 0.0),
+                new THREE.Vector3(0.0, 0.0, EL / Math.sqrt(2.0)),
+                new THREE.Vector3(0.0, 0.0, -EL / Math.sqrt(2.0))
+            ];
+            
+            // 8 faces
+            const faceIndices = [
+                [0, 1, 4], [1, 2, 4], [2, 3, 4], [3, 0, 4],
+                [0, 3, 5], [3, 2, 5], [2, 1, 5], [1, 0, 5]
+            ];
+            
+            const faceGroups = [];
+            faceIndices.forEach(([i, j, k]) => {
+                const face = makeJBFace(ov[i], ov[j], ov[k], faceMat, showEdges);
+                faceGroups.push(face);
+                group.add(face);
+            });
+            
+            group.userData.faceGroups = faceGroups;
+            group.userData.originalVertices = ov;
+            group.userData.faceIndices = faceIndices;
+            
+            // Gap triangles
+            const gapTriangleSpecs = [
+                { meeting: 0, split: 1, faceA: 0, faceB: 7 },
+                { meeting: 0, split: 3, faceA: 3, faceB: 4 },
+                { meeting: 4, split: 0, faceA: 0, faceB: 3 },
+                { meeting: 5, split: 0, faceA: 4, faceB: 7 },
+                { meeting: 2, split: 1, faceA: 1, faceB: 6 },
+                { meeting: 1, split: 4, faceA: 0, faceB: 1 },
+                { meeting: 1, split: 5, faceA: 6, faceB: 7 },
+                { meeting: 2, split: 3, faceA: 2, faceB: 5 },
+                { meeting: 4, split: 2, faceA: 1, faceB: 2 },
+                { meeting: 5, split: 2, faceA: 5, faceB: 6 },
+                { meeting: 3, split: 4, faceA: 2, faceB: 3 },
+                { meeting: 3, split: 5, faceA: 4, faceB: 5 },
+            ];
+            
+            group.userData.gapTriangleSpecs = gapTriangleSpecs;
+            
+            const gapTriangles = [];
+            const gapEdges = [];
+            const edgeMaterial = new THREE.LineBasicMaterial({ color: 0x000000 });
+            
+            for (let i = 0; i < 12; i++) {
+                const geom = new THREE.BufferGeometry();
+                const positions = new Float32Array(9);
+                geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+                geom.setIndex([0, 1, 2]);
+                const mesh = new THREE.Mesh(geom, gapMat);
+                mesh.visible = showGaps;
+                gapTriangles.push(mesh);
+                group.add(mesh);
+                
+                // Edge lines for this gap triangle
+                if (showEdges) {
+                    const edgeGeom = new THREE.BufferGeometry();
+                    const edgePositions = new Float32Array(12); // 4 points (triangle + back to start)
+                    edgeGeom.setAttribute('position', new THREE.BufferAttribute(edgePositions, 3));
+                    const edgeLine = new THREE.Line(edgeGeom, edgeMaterial);
+                    edgeLine.visible = showGaps;
+                    gapEdges.push(edgeLine);
+                    group.add(edgeLine);
+                }
+            }
+            group.userData.gapTriangles = gapTriangles;
+            group.userData.gapEdges = gapEdges;
+            
+            return group;
+        }
+
+        // === STATIC ICOSAHEDRON ===
+        function createStaticIcosahedron(color, showEdges, index) {
+            const group = new THREE.Group();
+            
+            const geometry = new THREE.IcosahedronGeometry(1, 0);
+            
+            const material = new THREE.MeshStandardMaterial({
+                color: color,
+                side: THREE.DoubleSide,
+                roughness: 0.6,
+                metalness: 0.1,
+            });
+            
+            const mesh = new THREE.Mesh(geometry, material);
+            group.add(mesh);
+            
+            if (showEdges) {
+                const edgesGeometry = new THREE.EdgesGeometry(geometry);
+                const edgesMaterial = new THREE.LineBasicMaterial({ color: 0x000000 });
+                const edges = new THREE.LineSegments(edgesGeometry, edgesMaterial);
+                group.add(edges);
+            }
+            
+            return group;
+        }
+
+        // === BUILD COMPOUND ===
+        let compound = null;
+        let jbAngle = ICOSAHEDRON_ANGLE;
+        let showEdges = true;
+        let showGaps = false;
+        let visibility = [true, true, true, true, true, true];
+        let rotationIndex = [0, 0, 0, 0, 0, 0];  // 0-4, each step is 72° around local Y axis
+
+        function buildCompound() {
+            if (compound) {
+                mainGroup.remove(compound);
+            }
+            compound = new THREE.Group();
+            
+            for (let i = 0; i < 6; i++) {
+                let shape;
+                
+                if (i === 0) {
+                    // Red icosahedron is jitterbugging
+                    shape = makeJitterbugOctahedron(COLORS[i], showEdges, showGaps, i);
+                    
+                    // Red icosa compound rotation: just alignQuat (no flip, no bisector)
+                    const alignAngle = Math.atan2(1, PHI);
+                    const compoundQuat = new THREE.Quaternion().setFromAxisAngle(
+                        new THREE.Vector3(0, 0, 1), alignAngle
+                    );
+                    
+                    // 5-fold rotation in LOCAL jitterbug space (72° increments around local vertex axis)
+                    const fiveFoldQuat = new THREE.Quaternion().setFromAxisAngle(
+                        FIVE_FOLD_AXIS_LOCAL, rotationIndex[i] * 2 * Math.PI / 5
+                    );
+                    
+                    // Final = compoundQuat * BASE_JB_ALIGN * fiveFoldQuat
+                    // (fiveFoldQuat applied first in local space, then BASE_JB_ALIGN, then compound)
+                    shape.quaternion.copy(compoundQuat).multiply(BASE_JB_ALIGN).multiply(fiveFoldQuat);
+                    shape.scale.setScalar(JB_SCALE);
+                    shape.userData.isJitterbug = true;
+                    shape.userData.icosaIndex = i;
+                } else if (i === 1) {
+                    // Green icosahedron is jitterbugging
+                    shape = makeJitterbugOctahedron(COLORS[i], showEdges, showGaps, i);
+                    
+                    // Green icosa compound rotation: alignQuat * flipQuat * bisectorQuat
+                    const alignAngle = Math.atan2(1, PHI);
+                    const alignQuat = new THREE.Quaternion().setFromAxisAngle(
+                        new THREE.Vector3(0, 0, 1), alignAngle
+                    );
+                    
+                    const flipQuat = new THREE.Quaternion().setFromAxisAngle(
+                        new THREE.Vector3(0, 1, 0), Math.PI
+                    );
+                    
+                    const bisectorAxis = BISECTOR_AXES[0];
+                    const bisectorQuat = new THREE.Quaternion().setFromAxisAngle(
+                        bisectorAxis, ALL_ROTATION * Math.PI / 180
+                    );
+                    
+                    // Compound rotation (same as static icosa)
+                    const compoundQuat = new THREE.Quaternion();
+                    compoundQuat.copy(bisectorQuat).multiply(flipQuat).multiply(alignQuat);
+                    
+                    // 5-fold rotation in LOCAL jitterbug space (72° increments around local vertex axis)
+                    const fiveFoldQuat = new THREE.Quaternion().setFromAxisAngle(
+                        FIVE_FOLD_AXIS_LOCAL, rotationIndex[i] * 2 * Math.PI / 5
+                    );
+                    
+                    // Final = compoundQuat * BASE_JB_ALIGN * fiveFoldQuat
+                    // (fiveFoldQuat applied first in local space, then BASE_JB_ALIGN, then compound)
+                    shape.quaternion.copy(compoundQuat).multiply(BASE_JB_ALIGN).multiply(fiveFoldQuat);
+                    shape.scale.setScalar(JB_SCALE);
+                    shape.userData.isJitterbug = true;
+                    shape.userData.icosaIndex = i;
+                } else if (i === 2) {
+                    // Blue icosahedron is jitterbugging
+                    shape = makeJitterbugOctahedron(COLORS[i], showEdges, showGaps, i);
+                    
+                    // Blue icosa compound rotation: alignQuat * flipQuat * bisectorQuat
+                    const alignAngle = Math.atan2(1, PHI);
+                    const alignQuat = new THREE.Quaternion().setFromAxisAngle(
+                        new THREE.Vector3(0, 0, 1), alignAngle
+                    );
+                    
+                    const flipQuat = new THREE.Quaternion().setFromAxisAngle(
+                        new THREE.Vector3(0, 1, 0), Math.PI
+                    );
+                    
+                    const bisectorAxis = BISECTOR_AXES[1];
+                    const bisectorQuat = new THREE.Quaternion().setFromAxisAngle(
+                        bisectorAxis, ALL_ROTATION * Math.PI / 180
+                    );
+                    
+                    // Compound rotation (same as static icosa)
+                    const compoundQuat = new THREE.Quaternion();
+                    compoundQuat.copy(bisectorQuat).multiply(flipQuat).multiply(alignQuat);
+                    
+                    // 5-fold rotation in LOCAL jitterbug space (72° increments around local vertex axis)
+                    const fiveFoldQuat = new THREE.Quaternion().setFromAxisAngle(
+                        FIVE_FOLD_AXIS_LOCAL, rotationIndex[i] * 2 * Math.PI / 5
+                    );
+                    
+                    // Final = compoundQuat * BASE_JB_ALIGN * fiveFoldQuat
+                    // (fiveFoldQuat applied first in local space, then BASE_JB_ALIGN, then compound)
+                    shape.quaternion.copy(compoundQuat).multiply(BASE_JB_ALIGN).multiply(fiveFoldQuat);
+                    shape.scale.setScalar(JB_SCALE);
+                    shape.userData.isJitterbug = true;
+                    shape.userData.icosaIndex = i;
+                } else if (i === 3) {
+                    // Yellow icosahedron is jitterbugging
+                    shape = makeJitterbugOctahedron(COLORS[i], showEdges, showGaps, i);
+                    
+                    // Yellow icosa compound rotation: alignQuat * flipQuat * bisectorQuat
+                    const alignAngle = Math.atan2(1, PHI);
+                    const alignQuat = new THREE.Quaternion().setFromAxisAngle(
+                        new THREE.Vector3(0, 0, 1), alignAngle
+                    );
+                    
+                    const flipQuat = new THREE.Quaternion().setFromAxisAngle(
+                        new THREE.Vector3(0, 1, 0), Math.PI
+                    );
+                    
+                    const bisectorAxis = BISECTOR_AXES[2];
+                    const bisectorQuat = new THREE.Quaternion().setFromAxisAngle(
+                        bisectorAxis, ALL_ROTATION * Math.PI / 180
+                    );
+                    
+                    // Compound rotation (same as static icosa)
+                    const compoundQuat = new THREE.Quaternion();
+                    compoundQuat.copy(bisectorQuat).multiply(flipQuat).multiply(alignQuat);
+                    
+                    // 5-fold rotation in LOCAL jitterbug space (72° increments around local vertex axis)
+                    const fiveFoldQuat = new THREE.Quaternion().setFromAxisAngle(
+                        FIVE_FOLD_AXIS_LOCAL, rotationIndex[i] * 2 * Math.PI / 5
+                    );
+                    
+                    // Final = compoundQuat * BASE_JB_ALIGN * fiveFoldQuat
+                    // (fiveFoldQuat applied first in local space, then BASE_JB_ALIGN, then compound)
+                    shape.quaternion.copy(compoundQuat).multiply(BASE_JB_ALIGN).multiply(fiveFoldQuat);
+                    shape.scale.setScalar(JB_SCALE);
+                    shape.userData.isJitterbug = true;
+                    shape.userData.icosaIndex = i;
+                } else if (i === 4) {
+                    // Magenta icosahedron is jitterbugging
+                    shape = makeJitterbugOctahedron(COLORS[i], showEdges, showGaps, i);
+                    
+                    // Magenta icosa compound rotation: alignQuat * flipQuat * bisectorQuat
+                    const alignAngle = Math.atan2(1, PHI);
+                    const alignQuat = new THREE.Quaternion().setFromAxisAngle(
+                        new THREE.Vector3(0, 0, 1), alignAngle
+                    );
+                    
+                    const flipQuat = new THREE.Quaternion().setFromAxisAngle(
+                        new THREE.Vector3(0, 1, 0), Math.PI
+                    );
+                    
+                    const bisectorAxis = BISECTOR_AXES[3];
+                    const bisectorQuat = new THREE.Quaternion().setFromAxisAngle(
+                        bisectorAxis, ALL_ROTATION * Math.PI / 180
+                    );
+                    
+                    // Compound rotation (same as static icosa)
+                    const compoundQuat = new THREE.Quaternion();
+                    compoundQuat.copy(bisectorQuat).multiply(flipQuat).multiply(alignQuat);
+                    
+                    // 5-fold rotation in LOCAL jitterbug space (72° increments around local vertex axis)
+                    const fiveFoldQuat = new THREE.Quaternion().setFromAxisAngle(
+                        FIVE_FOLD_AXIS_LOCAL, rotationIndex[i] * 2 * Math.PI / 5
+                    );
+                    
+                    // Final = compoundQuat * BASE_JB_ALIGN * fiveFoldQuat
+                    // (fiveFoldQuat applied first in local space, then BASE_JB_ALIGN, then compound)
+                    shape.quaternion.copy(compoundQuat).multiply(BASE_JB_ALIGN).multiply(fiveFoldQuat);
+                    shape.scale.setScalar(JB_SCALE);
+                    shape.userData.isJitterbug = true;
+                    shape.userData.icosaIndex = i;
+                } else if (i === 5) {
+                    // Cyan icosahedron is jitterbugging
+                    shape = makeJitterbugOctahedron(COLORS[i], showEdges, showGaps, i);
+                    
+                    // Cyan icosa compound rotation: alignQuat * flipQuat * bisectorQuat
+                    const alignAngle = Math.atan2(1, PHI);
+                    const alignQuat = new THREE.Quaternion().setFromAxisAngle(
+                        new THREE.Vector3(0, 0, 1), alignAngle
+                    );
+                    
+                    const flipQuat = new THREE.Quaternion().setFromAxisAngle(
+                        new THREE.Vector3(0, 1, 0), Math.PI
+                    );
+                    
+                    const bisectorAxis = BISECTOR_AXES[4];
+                    const bisectorQuat = new THREE.Quaternion().setFromAxisAngle(
+                        bisectorAxis, ALL_ROTATION * Math.PI / 180
+                    );
+                    
+                    // Compound rotation (same as static icosa)
+                    const compoundQuat = new THREE.Quaternion();
+                    compoundQuat.copy(bisectorQuat).multiply(flipQuat).multiply(alignQuat);
+                    
+                    // 5-fold rotation in LOCAL jitterbug space (72° increments around local vertex axis)
+                    const fiveFoldQuat = new THREE.Quaternion().setFromAxisAngle(
+                        FIVE_FOLD_AXIS_LOCAL, rotationIndex[i] * 2 * Math.PI / 5
+                    );
+                    
+                    // Final = compoundQuat * BASE_JB_ALIGN * fiveFoldQuat
+                    // (fiveFoldQuat applied first in local space, then BASE_JB_ALIGN, then compound)
+                    shape.quaternion.copy(compoundQuat).multiply(BASE_JB_ALIGN).multiply(fiveFoldQuat);
+                    shape.scale.setScalar(JB_SCALE);
+                    shape.userData.isJitterbug = true;
+                    shape.userData.icosaIndex = i;
+                }
+                
+                shape.visible = visibility[i];
+                compound.add(shape);
+            }
+            
+            mainGroup.add(compound);
+            updateJitterbug(jbAngle);
+        }
+
+        // === UPDATE JITTERBUG ===
+        function updateJitterbug(angle) {
+            if (!compound) return;
+            
+            compound.children.forEach((shape) => {
+                if (!shape.userData.isJitterbug) return;
+                
+                const faceGroups = shape.userData.faceGroups;
+                const gapTriangles = shape.userData.gapTriangles;
+                const originalVertices = shape.userData.originalVertices;
+                
+                if (!faceGroups) return;
+                
+                const initialRadius = Math.sqrt(2/3) * Math.cos(Math.PI / 180 * 60);
+                const currentRadius = Math.sqrt(2/3) * Math.cos(Math.PI / 180 * angle) - initialRadius;
+                
+                // Update each face
+                faceGroups.forEach((face, faceIndex) => {
+                    const hinge = face.userData;
+                    if (!hinge || !hinge.isVector3) return;
+                    
+                    const direction = (faceIndex % 2 === 0) ? -1 : 1;
+                    const angleRad = (Math.PI / 180) * (angle - 60) * direction;
+                    
+                    face.quaternion.setFromAxisAngle(hinge, angleRad);
+                    const pos = hinge.clone().multiplyScalar(currentRadius);
+                    face.position.copy(pos);
+                });
+                
+                // Update gap triangles
+                if (gapTriangles && shape.userData.gapTriangleSpecs) {
+                    const specs = shape.userData.gapTriangleSpecs;
+                    
+                    specs.forEach((spec, gapIndex) => {
+                        const { meeting, split, faceA, faceB } = spec;
+                        
+                        const faceAGroup = faceGroups[faceA];
+                        const faceBGroup = faceGroups[faceB];
+                        
+                        const hingeA = faceAGroup.userData;
+                        const hingeB = faceBGroup.userData;
+                        
+                        const dirA = (faceA % 2 === 0) ? -1 : 1;
+                        const dirB = (faceB % 2 === 0) ? -1 : 1;
+                        
+                        const angleRadA = (Math.PI / 180) * (angle - 60) * dirA;
+                        const angleRadB = (Math.PI / 180) * (angle - 60) * dirB;
+                        
+                        const quatA = new THREE.Quaternion().setFromAxisAngle(hingeA, angleRadA);
+                        const quatB = new THREE.Quaternion().setFromAxisAngle(hingeB, angleRadB);
+                        
+                        const posA = hingeA.clone().multiplyScalar(currentRadius);
+                        const posB = hingeB.clone().multiplyScalar(currentRadius);
+                        
+                        const meetingOrig = originalVertices[meeting].clone();
+                        const meetingWorld = meetingOrig.clone().applyQuaternion(quatA).add(posA);
+                        
+                        const splitOrig = originalVertices[split].clone();
+                        const splitA = splitOrig.clone().applyQuaternion(quatA).add(posA);
+                        const splitB = splitOrig.clone().applyQuaternion(quatB).add(posB);
+                        
+                        const gapMesh = gapTriangles[gapIndex];
+                        const positions = gapMesh.geometry.attributes.position.array;
+                        
+                        positions[0] = meetingWorld.x; positions[1] = meetingWorld.y; positions[2] = meetingWorld.z;
+                        positions[3] = splitA.x; positions[4] = splitA.y; positions[5] = splitA.z;
+                        positions[6] = splitB.x; positions[7] = splitB.y; positions[8] = splitB.z;
+                        
+                        gapMesh.geometry.attributes.position.needsUpdate = true;
+                        gapMesh.geometry.computeVertexNormals();
+                        
+                        // Update edge lines
+                        const gapEdges = shape.userData.gapEdges;
+                        if (gapEdges && gapEdges[gapIndex]) {
+                            const edgePositions = gapEdges[gapIndex].geometry.attributes.position.array;
+                            edgePositions[0] = meetingWorld.x; edgePositions[1] = meetingWorld.y; edgePositions[2] = meetingWorld.z;
+                            edgePositions[3] = splitA.x; edgePositions[4] = splitA.y; edgePositions[5] = splitA.z;
+                            edgePositions[6] = splitB.x; edgePositions[7] = splitB.y; edgePositions[8] = splitB.z;
+                            edgePositions[9] = meetingWorld.x; edgePositions[10] = meetingWorld.y; edgePositions[11] = meetingWorld.z;
+                            gapEdges[gapIndex].geometry.attributes.position.needsUpdate = true;
+                        }
+                    });
+                }
+            });
+        }
+
+        function updateVisibility() {
+            if (!compound) return;
+            compound.children.forEach((shape, i) => {
+                shape.visible = visibility[i];
+            });
+        }
+
+        function updateGapVisibility() {
+            if (!compound) return;
+            compound.children.forEach((shape) => {
+                if (shape.userData.gapTriangles) {
+                    shape.userData.gapTriangles.forEach(gap => {
+                        gap.visible = showGaps;
+                    });
+                }
+                if (shape.userData.gapEdges) {
+                    shape.userData.gapEdges.forEach(edge => {
+                        edge.visible = showGaps;
+                    });
+                }
+            });
+        }
+
+        buildCompound();
+
+        // === CONTROLS ===
+        const jbAngleSlider = document.getElementById('jbAngleSlider');
+        const jbAngleValue = document.getElementById('jbAngleValue');
+        const autoRotateCheck = document.getElementById('autoRotate');
+        const showEdgesCheck = document.getElementById('showEdges');
+        const showGapsCheck = document.getElementById('showGaps');
+
+        jbAngleSlider.addEventListener('input', (e) => {
+            jbAngle = parseFloat(e.target.value);
+            jbAngleValue.textContent = jbAngle.toFixed(2) + '°';
+            updateJitterbug(jbAngle);
+        });
+
+        document.getElementById('btnOcta').addEventListener('click', () => {
+            jbAngle = 60;
+            jbAngleSlider.value = 60;
+            jbAngleValue.textContent = '60.00°';
+            updateJitterbug(60);
+        });
+
+        document.getElementById('btnIcosa').addEventListener('click', () => {
+            jbAngle = ICOSAHEDRON_ANGLE;
+            jbAngleSlider.value = ICOSAHEDRON_ANGLE;
+            jbAngleValue.textContent = ICOSAHEDRON_ANGLE.toFixed(2) + '°';
+            updateJitterbug(ICOSAHEDRON_ANGLE);
+        });
+
+        showEdgesCheck.addEventListener('change', (e) => {
+            showEdges = e.target.checked;
+            buildCompound();
+        });
+
+        showGapsCheck.addEventListener('change', (e) => {
+            showGaps = e.target.checked;
+            updateGapVisibility();
+        });
+
+        for (let i = 1; i <= 6; i++) {
+            document.getElementById('show' + i).addEventListener('change', (e) => {
+                visibility[i - 1] = e.target.checked;
+                updateVisibility();
+            });
+            document.getElementById('rot' + i).addEventListener('change', (e) => {
+                rotationIndex[i - 1] = parseInt(e.target.value) % 5;
+                buildCompound();
+            });
+        }
+
+        // === MOUSE CONTROLS ===
+        let isDragging = false;
+        let prevMouse = { x: 0, y: 0 };
+
+        container.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            prevMouse = { x: e.clientX, y: e.clientY };
+        });
+
+        container.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                const dx = e.clientX - prevMouse.x;
+                const dy = e.clientY - prevMouse.y;
+                mainGroup.rotation.z += dx * 0.01;
+                mainGroup.rotation.x += dy * 0.01;
+                prevMouse = { x: e.clientX, y: e.clientY };
+            }
+        });
+
+        container.addEventListener('mouseup', () => isDragging = false);
+        container.addEventListener('mouseleave', () => isDragging = false);
+
+        container.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const zoomSpeed = 0.001;
+            const scaleFactor = 1 + e.deltaY * zoomSpeed;
+            mainGroup.scale.multiplyScalar(1 / scaleFactor);
+            const s = mainGroup.scale.x;
+            if (s < 0.1) mainGroup.scale.setScalar(0.1);
+            if (s > 10) mainGroup.scale.setScalar(10);
+        }, { passive: false });
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // === RENDER LOOP ===
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            if (autoRotateCheck.checked && !isDragging) {
+                mainGroup.rotation.z += 0.005;
+            }
+            
+            renderer.render(scene, camera);
+        }
+
+        animate();
+    </script>
+</body>
+</html>
