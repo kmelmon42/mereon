@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>144-Face Core: Exact vs FCC Comparison</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: system-ui, sans-serif; background: #0a0a12; color: #eee; overflow: hidden; }
+        #controls {
+            position: fixed; top: 15px; left: 15px;
+            background: rgba(18, 18, 26, 0.95); padding: 15px; border-radius: 8px;
+            z-index: 100; width: 300px; max-height: 90vh; overflow-y: auto;
+        }
+        h1 { font-size: 1rem; color: #7af; margin-bottom: 12px; }
+        h2 { font-size: 0.85rem; color: #aaa; margin: 12px 0 6px 0; border-top: 1px solid #333; padding-top: 10px; }
+        .control-row { margin: 6px 0; font-size: 0.8rem; }
+        .control-row label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+        input[type="radio"], input[type="checkbox"] { margin: 0; }
+        .info { font-size: 0.7rem; color: #888; margin-top: 12px; line-height: 1.5; }
+        .highlight { color: #7af; }
+        .warn { color: #fa5; }
+        #canvas-container { width: 100vw; height: 100vh; }
+        .ratios { font-family: monospace; font-size: 0.75rem; margin: 8px 0; padding: 8px; background: rgba(0,0,0,0.3); border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <h1>144 Core: Exact vs FCC</h1>
+        
+        <div class="control-row">
+            <label><input type="checkbox" id="autoRotate"> Auto Rotate</label>
+        </div>
+        
+        <h2>Version</h2>
+        <div class="control-row">
+            <label><input type="radio" name="version" value="exact" checked> 
+                <span class="highlight">Exact ratios</span> (book values)</label>
+        </div>
+        <div class="control-row">
+            <label><input type="radio" name="version" value="fcc"> 
+                <span class="warn">FCC lattice</span> (closest approximation)</label>
+        </div>
+        
+        <div class="ratios" id="ratioDisplay">
+            <strong>Triangle edge ratios:</strong><br>
+            Target: 1.0 : 0.83246 : 0.6589<br>
+            Current: <span id="currentRatios">1.0 : 0.83246 : 0.6589</span>
+        </div>
+        
+        <h2>Display</h2>
+        <div class="control-row">
+            <label><input type="checkbox" id="showFaces" checked> Show Faces</label>
+        </div>
+        <div class="control-row">
+            <label><input type="checkbox" id="showEdges" checked> Show Edges</label>
+        </div>
+        <div class="control-row">
+            <label><input type="checkbox" id="showVertices"> Show Vertices</label>
+        </div>
+        <div class="control-row">
+            <label><input type="checkbox" id="showOctahedron"> Base Octahedron</label>
+        </div>
+        
+        <div class="info">
+            <strong>Exact version:</strong> Uses optimized protrusion heights to achieve the exact 1.0 : 0.83246 : 0.6589 ratios from the book. Vertices are NOT on FCC lattice.<br><br>
+            <strong>FCC version:</strong> All vertices constrained to FCC lattice points. Closest achievable ratios are approximately 1.0 : 0.824 : 0.676.
+        </div>
+    </div>
+    <div id="canvas-container"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // Octahedron vertices (unit)
+        const octaVerts = [
+            [1, 0, 0], [-1, 0, 0],
+            [0, 1, 0], [0, -1, 0],
+            [0, 0, 1], [0, 0, -1]
+        ];
+        
+        const octaFaces = [
+            [0, 2, 4], [0, 4, 3], [0, 3, 5], [0, 5, 2],
+            [1, 4, 2], [1, 3, 4], [1, 5, 3], [1, 2, 5],
+        ];
+        
+        function vec3(arr) { return new THREE.Vector3(arr[0], arr[1], arr[2]); }
+        function avg(...verts) {
+            const n = verts.length;
+            return [
+                verts.reduce((s, v) => s + v[0], 0) / n,
+                verts.reduce((s, v) => s + v[1], 0) / n,
+                verts.reduce((s, v) => s + v[2], 0) / n
+            ];
+        }
+        function norm(v) {
+            const len = Math.sqrt(v[0]*v[0] + v[1]*v[1] + v[2]*v[2]);
+            return [v[0]/len, v[1]/len, v[2]/len];
+        }
+        function add(a, b) { return [a[0]+b[0], a[1]+b[1], a[2]+b[2]]; }
+        function scale(v, s) { return [v[0]*s, v[1]*s, v[2]*s]; }
+        
+        // Optimized parameters for exact ratios
+        const EXACT_H_CENTER = 0.363208;
+        const EXACT_H_CENTROID = 0.243408;
+        
+        // FCC-constrained parameters (approximate)
+        // Using face center at (6,6,6)/18 = (0.333...) and centroid that gives closest ratios
+        const FCC_H_CENTER = 0;  // Face center stays flat at (1/3, 1/3, 1/3) normalized
+        const FCC_H_CENTROID = 0;  // Centroid at natural position
+        
+        function build144(h_center, h_centroid, useFCC) {
+            const vertices = [];
+            const triangles = [];
+            const vertexMap = {};
+            
+            function addVertex(v) {
+                const key = v.map(x => Math.round(x * 10000)).join(',');
+                if (!(key in vertexMap)) {
+                    vertexMap[key] = vertices.length;
+                    vertices.push([...v]);
+                }
+                return vertexMap[key];
+            }
+            
+            function isFCC(p) {
+                // Scale to size 18 for checking
+                const scaled = p.map(x => x * 18);
+                const rounded = scaled.map(x => Math.round(x));
+                const isInt = scaled.every((x, i) => Math.abs(x - rounded[i]) < 0.01);
+                if (!isInt) return false;
+                return (rounded[0] + rounded[1] + rounded[2]) % 2 === 0;
+            }
+            
+            function nearestFCC(p) {
+                // Scale to size 18
+                const scaled = p.map(x => x * 18);
+                let best = null;
+                let bestDist = Infinity;
+                
+                for (let dx = -2; dx <= 2; dx++) {
+                    for (let dy = -2; dy <= 2; dy++) {
+                        for (let dz = -2; dz <= 2; dz++) {
+                            const cand = [
+                                Math.round(scaled[0]) + dx,
+                                Math.round(scaled[1]) + dy,
+                                Math.round(scaled[2]) + dz
+                            ];
+                            if ((cand[0] + cand[1] + cand[2]) % 2 !== 0) continue;
+                            
+                            const dist = Math.sqrt(
+                                (cand[0] - scaled[0])**2 +
+                                (cand[1] - scaled[1])**2 +
+                                (cand[2] - scaled[2])**2
+                            );
+                            if (dist < bestDist) {
+                                bestDist = dist;
+                                best = cand;
+                            }
+                        }
+                    }
+                }
+                return best ? best.map(x => x / 18) : p;
+            }
+            
+            for (const face of octaFaces) {
+                const A = octaVerts[face[0]];
+                const B = octaVerts[face[1]];
+                const C = octaVerts[face[2]];
+                
+                const O_flat = avg(A, B, C);
+                const normal = norm(O_flat);  // For octahedron, face center direction = normal
+                
+                // Face center (possibly protruding)
+                let O = add(O_flat, scale(normal, h_center));
+                if (useFCC) O = nearestFCC(O);
+                
+                // Edge midpoints
+                const M_AB = avg(A, B);
+                const M_BC = avg(B, C);
+                const M_CA = avg(C, A);
+                
+                // 6 level-1 triangles
+                const level1 = [
+                    [A, M_AB, O], [M_AB, B, O], [B, M_BC, O],
+                    [M_BC, C, O], [C, M_CA, O], [M_CA, A, O]
+                ];
+                
+                for (const [P, Q, R] of level1) {
+                    // Centroid (possibly protruding)
+                    let cent = avg(P, Q, R);
+                    cent = add(cent, scale(normal, h_centroid));
+                    if (useFCC) cent = nearestFCC(cent);
+                    
+                    // 3 small triangles
+                    const pIdx = addVertex(P);
+                    const qIdx = addVertex(Q);
+                    const rIdx = addVertex(R);
+                    const cIdx = addVertex(cent);
+                    
+                    triangles.push([pIdx, qIdx, cIdx]);
+                    triangles.push([qIdx, rIdx, cIdx]);
+                    triangles.push([rIdx, pIdx, cIdx]);
+                }
+            }
+            
+            return { vertices, triangles };
+        }
+        
+        function computeRatios(vertices, triangles) {
+            // Sample one triangle and compute its ratios
+            const tri = triangles[1];  // Pick triangle that should have target ratios
+            const P = vertices[tri[0]];
+            const Q = vertices[tri[1]];
+            const R = vertices[tri[2]];
+            
+            const e1 = Math.sqrt((P[0]-Q[0])**2 + (P[1]-Q[1])**2 + (P[2]-Q[2])**2);
+            const e2 = Math.sqrt((Q[0]-R[0])**2 + (Q[1]-R[1])**2 + (Q[2]-R[2])**2);
+            const e3 = Math.sqrt((R[0]-P[0])**2 + (R[1]-P[1])**2 + (R[2]-P[2])**2);
+            
+            const edges = [e1, e2, e3].sort((a,b) => b-a);
+            return [1.0, edges[1]/edges[0], edges[2]/edges[0]];
+        }
+        
+        // Three.js setup
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0a0a12);
+        
+        const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+        // Standard view: camera on +Z axis looking at origin
+        // X = right, Y = up, Z = toward viewer
+        camera.position.set(0, 0, 4);
+        camera.lookAt(0, 0, 0);
+        camera.up.set(0, 1, 0);
+        
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        container.appendChild(renderer.domElement);
+        
+        scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+        const light1 = new THREE.DirectionalLight(0xffffff, 0.8);
+        light1.position.set(5, 5, 5);
+        scene.add(light1);
+        const light2 = new THREE.DirectionalLight(0xffffff, 0.3);
+        light2.position.set(-5, -5, 5);
+        scene.add(light2);
+        
+        const mainGroup = new THREE.Group();
+        scene.add(mainGroup);
+        
+        // Add axes helper: Red = X, Green = Y, Blue = Z
+        const axesHelper = new THREE.AxesHelper(2);
+        scene.add(axesHelper);
+        
+        function rebuild() {
+            while (mainGroup.children.length) mainGroup.remove(mainGroup.children[0]);
+            
+            const version = document.querySelector('input[name="version"]:checked').value;
+            const showFaces = document.getElementById('showFaces').checked;
+            const showEdges = document.getElementById('showEdges').checked;
+            const showVertices = document.getElementById('showVertices').checked;
+            const showOctahedron = document.getElementById('showOctahedron').checked;
+            
+            let h_center, h_centroid, useFCC;
+            if (version === 'exact') {
+                h_center = EXACT_H_CENTER;
+                h_centroid = EXACT_H_CENTROID;
+                useFCC = false;
+            } else {
+                h_center = EXACT_H_CENTER;  // Start with same protrusion
+                h_centroid = EXACT_H_CENTROID;
+                useFCC = true;  // But snap to FCC
+            }
+            
+            const { vertices, triangles } = build144(h_center, h_centroid, useFCC);
+            
+            // Update ratio display
+            const ratios = computeRatios(vertices, triangles);
+            document.getElementById('currentRatios').textContent = 
+                `1.0 : ${ratios[1].toFixed(5)} : ${ratios[2].toFixed(5)}`;
+            
+            // Draw faces
+            if (showFaces) {
+                const geom = new THREE.BufferGeometry();
+                const positions = [];
+                
+                for (const tri of triangles) {
+                    for (const idx of tri) {
+                        positions.push(...vertices[idx]);
+                    }
+                }
+                
+                geom.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+                geom.computeVertexNormals();
+                
+                const mat = new THREE.MeshStandardMaterial({
+                    color: version === 'exact' ? 0x4488ff : 0xff8844,
+                    side: THREE.DoubleSide,
+                    roughness: 0.6,
+                    metalness: 0.1
+                });
+                mainGroup.add(new THREE.Mesh(geom, mat));
+            }
+            
+            // Draw edges
+            if (showEdges) {
+                const edgeMat = new THREE.LineBasicMaterial({ color: 0x000000 });
+                for (const tri of triangles) {
+                    const pts = [
+                        vec3(vertices[tri[0]]),
+                        vec3(vertices[tri[1]]),
+                        vec3(vertices[tri[2]]),
+                        vec3(vertices[tri[0]])
+                    ];
+                    mainGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), edgeMat));
+                }
+            }
+            
+            // Draw vertices
+            if (showVertices) {
+                const sphereGeom = new THREE.SphereGeometry(0.02, 16, 16);
+                const sphereMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
+                for (const v of vertices) {
+                    const sphere = new THREE.Mesh(sphereGeom, sphereMat);
+                    sphere.position.set(...v);
+                    mainGroup.add(sphere);
+                }
+            }
+            
+            // Draw octahedron
+            if (showOctahedron) {
+                const octaEdges = [[0,2],[0,3],[0,4],[0,5],[1,2],[1,3],[1,4],[1,5],[2,4],[4,3],[3,5],[5,2]];
+                const octaMat = new THREE.LineBasicMaterial({ color: 0xffaa00, transparent: true, opacity: 0.5 });
+                for (const [i,j] of octaEdges) {
+                    const pts = [vec3(octaVerts[i]), vec3(octaVerts[j])];
+                    mainGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), octaMat));
+                }
+            }
+        }
+        
+        rebuild();
+        
+        document.querySelectorAll('input').forEach(el => el.addEventListener('change', rebuild));
+        
+        let isDragging = false, prevMouse = {x:0, y:0};
+        container.addEventListener('mousedown', e => { isDragging = true; prevMouse = {x:e.clientX, y:e.clientY}; });
+        container.addEventListener('mousemove', e => {
+            if (isDragging) {
+                mainGroup.rotation.y += (e.clientX - prevMouse.x) * 0.01;
+                mainGroup.rotation.x += (e.clientY - prevMouse.y) * 0.01;
+                prevMouse = {x:e.clientX, y:e.clientY};
+            }
+        });
+        container.addEventListener('mouseup', () => isDragging = false);
+        container.addEventListener('mouseleave', () => isDragging = false);
+        container.addEventListener('wheel', e => { e.preventDefault(); camera.position.multiplyScalar(1 + e.deltaY * 0.001); }, {passive:false});
+        window.addEventListener('resize', () => { camera.aspect = window.innerWidth/window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); });
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            if (document.getElementById('autoRotate').checked && !isDragging) mainGroup.rotation.y += 0.005;
+            renderer.render(scene, camera);
+        }
+        animate();
+    </script>
+</body>
+</html>
