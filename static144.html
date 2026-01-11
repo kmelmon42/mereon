@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>144 Polyhedron - Exact FCC Construction</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: system-ui, sans-serif; background: #1a1a2e; color: #eee; overflow: hidden; }
+        #controls {
+            position: fixed; top: 15px; left: 15px;
+            background: rgba(18, 18, 26, 0.95); padding: 15px; border-radius: 8px;
+            z-index: 100; width: 380px; max-height: 90vh; overflow-y: auto;
+        }
+        h1 { font-size: 1rem; color: #7af; margin-bottom: 8px; }
+        h2 { font-size: 0.85rem; color: #aaa; margin: 12px 0 6px 0; border-top: 1px solid #333; padding-top: 10px; }
+        .control-row { margin: 6px 0; font-size: 0.8rem; }
+        .control-row label { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+        .info { font-size: 0.72rem; color: #888; margin-top: 8px; line-height: 1.5; }
+        .highlight { color: #7af; font-weight: bold; }
+        #canvas-container { width: 100vw; height: 100vh; }
+        .stats { font-family: monospace; font-size: 0.68rem; margin: 8px 0; padding: 8px; background: rgba(0,0,0,0.3); border-radius: 4px; line-height: 1.6; }
+        .color-key { display: flex; align-items: center; gap: 6px; margin: 3px 0; font-size: 0.72rem; }
+        .color-swatch { width: 14px; height: 14px; border-radius: 2px; border: 1px solid #444; }
+        button { background: #335; color: #aef; border: 1px solid #446; padding: 6px 10px; border-radius: 4px; cursor: pointer; font-size: 0.75rem; margin: 3px 3px 3px 0; }
+        button:hover { background: #446; }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <h1>144 Polyhedron - FCC Shell Analysis</h1>
+        <div class="info">
+            <span class="highlight">74 vertices</span> from FCC shells<br>
+            Scale = 4 (5 BBs per octahedron edge)
+        </div>
+        
+        <h2>Main Display</h2>
+        <div class="control-row">
+            <label><input type="checkbox" id="autoRotate"> Auto Rotate</label>
+        </div>
+        <div class="control-row">
+            <label><input type="checkbox" id="showFaces" checked> 144 Faces</label>
+        </div>
+        <div class="control-row">
+            <label><input type="checkbox" id="showEdges" checked> 144 Edges</label>
+        </div>
+        <div class="control-row">
+            <label><input type="checkbox" id="showVerts"> All 74 Vertices</label>
+        </div>
+        
+        <h2>Octahedra</h2>
+        <div class="control-row">
+            <label><input type="checkbox" id="showOuterOcta" checked> Outer Octahedron (r²=16, yellow)</label>
+        </div>
+        <div class="control-row">
+            <label><input type="checkbox" id="showInnerOcta"> Inner Octahedron (r²=4, red)</label>
+        </div>
+        <div class="control-row">
+            <label><input type="checkbox" id="showAxes" checked> X, Y, Z Axes</label>
+        </div>
+        
+        <h2>FCC Shells (check to show)</h2>
+        <div class="control-row">
+            <label><input type="checkbox" id="shell0"> r²=0: Origin (1 pt)</label>
+        </div>
+        <div class="control-row">
+            <label><input type="checkbox" id="shell2"> r²=2: (1,1,0) type (12 pts) - inner edge mids</label>
+        </div>
+        <div class="control-row">
+            <label><input type="checkbox" id="shell4"> r²=4: (2,0,0) type (6 pts) - inner octa verts</label>
+        </div>
+        <div class="control-row">
+            <label><input type="checkbox" id="shell6"> r²=6: (1,1,2) type (24 pts) - ★ face centroids?</label>
+        </div>
+        <div class="control-row">
+            <label><input type="checkbox" id="shell8" checked> r²=8: (2,2,0) type (12 pts) - outer edge mids</label>
+        </div>
+        <div class="control-row">
+            <label><input type="checkbox" id="shell10"> r²=10: (3,1,0) type (24 pts) - ★ level-1 points?</label>
+        </div>
+        <div class="control-row">
+            <label><input type="checkbox" id="shell12"> r²=12: (2,2,2) type (8 pts) - face centers?</label>
+        </div>
+        <div class="control-row">
+            <label><input type="checkbox" id="shell16" checked> r²=16: (4,0,0) type (6 pts) - outer octa verts</label>
+        </div>
+        <div class="control-row">
+            <label><input type="checkbox" id="shell18"> r²=18: (3,3,0) type (12 pts)</label>
+        </div>
+        
+        <h2>View</h2>
+        <button onclick="setView('face')">Face (4-fold)</button>
+        <button onclick="setView('vertex')">Vertex (3-fold)</button>
+        <button onclick="setView('edge')">Edge (2-fold)</button>
+        
+        <h2>Shell Color Key</h2>
+        <div class="color-key"><div class="color-swatch" style="background:#ff0000"></div> r²=0 (origin)</div>
+        <div class="color-key"><div class="color-swatch" style="background:#ff6600"></div> r²=2</div>
+        <div class="color-key"><div class="color-swatch" style="background:#ffcc00"></div> r²=4 (inner octa)</div>
+        <div class="color-key"><div class="color-swatch" style="background:#88ff00"></div> r²=6</div>
+        <div class="color-key"><div class="color-swatch" style="background:#00ff88"></div> r²=8 (edge mids)</div>
+        <div class="color-key"><div class="color-swatch" style="background:#00ccff"></div> r²=10</div>
+        <div class="color-key"><div class="color-swatch" style="background:#0066ff"></div> r²=12</div>
+        <div class="color-key"><div class="color-swatch" style="background:#aa00ff"></div> r²=16 (outer octa)</div>
+        <div class="color-key"><div class="color-swatch" style="background:#ff00aa"></div> r²=18</div>
+        <div class="color-key"><div class="color-swatch" style="background:#ffff00; border:2px solid #fff"></div> Used by 144</div>
+        
+        <div id="stats" class="stats"></div>
+    </div>
+    <div id="canvas-container"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        const SCALE = 4;
+        
+        function isFCC(x, y, z) { return (x + y + z) % 2 === 0; }
+        function toUnit(fcc) { return [fcc[0]/SCALE, fcc[1]/SCALE, fcc[2]/SCALE]; }
+        function vec3(a) { return new THREE.Vector3(a[0], a[1], a[2]); }
+        function add(a, b) { return [a[0]+b[0], a[1]+b[1], a[2]+b[2]]; }
+        function sub(a, b) { return [a[0]-b[0], a[1]-b[1], a[2]-b[2]]; }
+        function mul(v, s) { return [v[0]*s, v[1]*s, v[2]*s]; }
+        function dot(a, b) { return a[0]*b[0] + a[1]*b[1] + a[2]*b[2]; }
+        function len(v) { return Math.sqrt(dot(v, v)); }
+        function norm(v) { const l = len(v); return l ? mul(v, 1/l) : [0,0,0]; }
+        function avg(...vs) {
+            const n = vs.length;
+            return [vs.reduce((s,v) => s+v[0], 0)/n, vs.reduce((s,v) => s+v[1], 0)/n, vs.reduce((s,v) => s+v[2], 0)/n];
+        }
+        
+        // Octahedron
+        const OUTER = [[4,0,0],[-4,0,0],[0,4,0],[0,-4,0],[0,0,4],[0,0,-4]];
+        const INNER = [[2,0,0],[-2,0,0],[0,2,0],[0,-2,0],[0,0,2],[0,0,-2]];
+        const FACES = [[0,2,4],[0,4,3],[0,3,5],[0,5,2],[1,4,2],[1,3,4],[1,5,3],[1,2,5]];
+        const EDGES = [[0,2],[0,3],[0,4],[0,5],[1,2],[1,3],[1,4],[1,5],[2,4],[4,3],[3,5],[5,2]];
+        
+        // Generate all FCC shells
+        function getFCCShells(maxR2) {
+            const shells = {};
+            const max = Math.ceil(Math.sqrt(maxR2)) + 1;
+            for (let x = -max; x <= max; x++) {
+                for (let y = -max; y <= max; y++) {
+                    for (let z = -max; z <= max; z++) {
+                        if (!isFCC(x, y, z)) continue;
+                        const r2 = x*x + y*y + z*z;
+                        if (r2 > maxR2) continue;
+                        if (!shells[r2]) shells[r2] = [];
+                        shells[r2].push([x, y, z]);
+                    }
+                }
+            }
+            return shells;
+        }
+        
+        // Find nearest FCC
+        function nearestFCC(pt) {
+            let best = null, bestD = Infinity;
+            for (let dx = -2; dx <= 2; dx++) {
+                for (let dy = -2; dy <= 2; dy++) {
+                    for (let dz = -2; dz <= 2; dz++) {
+                        const c = [Math.round(pt[0])+dx, Math.round(pt[1])+dy, Math.round(pt[2])+dz];
+                        if (!isFCC(c[0], c[1], c[2])) continue;
+                        const d = len(sub(c, pt));
+                        if (d < bestD) { bestD = d; best = c; }
+                    }
+                }
+            }
+            return best;
+        }
+        
+        // Build 144 carefully
+        function build144() {
+            const vertices = [];
+            const triangles = [];
+            const vertexMap = {};
+            
+            function addV(v) {
+                const key = v.map(Math.round).join(',');
+                if (!(key in vertexMap)) {
+                    vertexMap[key] = vertices.length;
+                    vertices.push(v.map(Math.round));
+                }
+                return vertexMap[key];
+            }
+            
+            for (const face of FACES) {
+                const A = OUTER[face[0]];
+                const B = OUTER[face[1]];
+                const C = OUTER[face[2]];
+                const faceNormal = norm(avg(A, B, C));
+                
+                // Edge midpoints - on r²=8 shell
+                const mAB = avg(A, B);
+                const mBC = avg(B, C);
+                const mCA = avg(C, A);
+                
+                // Face center - search for best FCC point
+                // The geometric center is at (4/3, 4/3, 4/3) ≈ (1.33, 1.33, 1.33)
+                // r² = 3 * (4/3)² = 16/3 ≈ 5.33
+                // Nearest FCC: could be r²=4 (2,0,0), r²=6 (1,1,2), r²=8 (2,2,0)
+                // (2,2,0) is on the edge, not face center
+                // (1,1,2) has r²=6, and is above the face plane in the right direction
+                
+                // For face (4,0,0), (0,4,0), (0,0,4):
+                // Normal direction is (1,1,1)/sqrt(3)
+                // (1,1,2) projected onto normal: (1+1+2)/sqrt(3) = 4/sqrt(3) ≈ 2.31
+                // (2,2,2) projected: 6/sqrt(3) ≈ 3.46 - more outward
+                
+                // Let's use (2,2,2) for face center when all coords positive
+                // In general, face center should be the point in r²=12 shell
+                // that's aligned with face normal
+                
+                const flatCenter = avg(A, B, C);
+                let O = findFaceCenter(A, B, C, faceNormal);
+                
+                // 6 triangles around face center
+                const L1 = [
+                    [A, mAB, O], [mAB, B, O], [B, mBC, O],
+                    [mBC, C, O], [C, mCA, O], [mCA, A, O]
+                ];
+                
+                for (const [P, Q, R] of L1) {
+                    // Level-1 triangle centroid
+                    // For triangle with vertices from r²=16, r²=8, r²=12 shells
+                    // The centroid should snap to an FCC point
+                    
+                    const centFlat = avg(P, Q, R);
+                    // Push outward slightly along face normal
+                    const centPushed = add(centFlat, mul(faceNormal, 0.5));
+                    const cent = nearestFCC(centPushed);
+                    
+                    // 3 small triangles
+                    const pI = addV(P);
+                    const qI = addV(Q);
+                    const rI = addV(R);
+                    const cI = addV(cent);
+                    
+                    triangles.push([pI, qI, cI]);
+                    triangles.push([qI, rI, cI]);
+                    triangles.push([rI, pI, cI]);
+                }
+            }
+            
+            return { vertices, triangles };
+        }
+        
+        function findFaceCenter(A, B, C, normal) {
+            // Try r²=12 shell first (2,2,2) type - these are cube vertices
+            // There are 8 such points: (±2,±2,±2)
+            // Find the one most aligned with face normal
+            
+            const candidates = [
+                [2,2,2], [-2,-2,-2], [2,2,-2], [2,-2,2], [-2,2,2],
+                [2,-2,-2], [-2,2,-2], [-2,-2,2]
+            ];
+            
+            let best = null, bestAlign = -Infinity;
+            for (const c of candidates) {
+                const cNorm = norm(c);
+                const align = dot(cNorm, normal);
+                if (align > bestAlign) {
+                    bestAlign = align;
+                    best = c;
+                }
+            }
+            
+            // Verify it's appropriate
+            if (best && bestAlign > 0.9) return best;
+            
+            // Fallback: search more broadly
+            const flatCenter = avg(A, B, C);
+            return nearestFCC(flatCenter);
+        }
+        
+        // Three.js
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x1a1a2e);
+        
+        const camera = new THREE.PerspectiveCamera(50, window.innerWidth/window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 0, 4);
+        
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        container.appendChild(renderer.domElement);
+        
+        scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+        const light = new THREE.DirectionalLight(0xffffff, 0.7);
+        light.position.set(5, 5, 5);
+        scene.add(light);
+        
+        const mainGroup = new THREE.Group();
+        mainGroup.rotation.z = Math.PI / 4;  // 45 degrees about Z axis
+        scene.add(mainGroup);
+        
+        // Build
+        const { vertices, triangles } = build144();
+        const verticesUnit = vertices.map(toUnit);
+        const usedFCC = new Set(vertices.map(v => v.join(',')));
+        
+        // Shells
+        const shells = getFCCShells(20);
+        
+        // Stats
+        let stats = `<strong>144 Polyhedron:</strong><br>`;
+        stats += `Vertices: ${vertices.length}<br>`;
+        stats += `Triangles: ${triangles.length}<br><br>`;
+        stats += `<strong>Shell membership:</strong><br>`;
+        
+        const shellCounts = {};
+        for (const v of vertices) {
+            const r2 = v[0]*v[0] + v[1]*v[1] + v[2]*v[2];
+            shellCounts[r2] = (shellCounts[r2] || 0) + 1;
+        }
+        for (const r2 of Object.keys(shellCounts).sort((a,b) => a-b)) {
+            const total = shells[r2] ? shells[r2].length : '?';
+            stats += `r²=${r2}: ${shellCounts[r2]}/${total} used<br>`;
+        }
+        document.getElementById('stats').innerHTML = stats;
+        
+        // Materials
+        const mats = {
+            face: new THREE.MeshStandardMaterial({ color: 0x4488ff, side: THREE.DoubleSide, transparent: true, opacity: 0.85 }),
+            edge: new THREE.LineBasicMaterial({ color: 0x000000 }),
+            vert: new THREE.MeshStandardMaterial({ color: 0xffffff }),
+            outerOcta: new THREE.LineBasicMaterial({ color: 0xffaa00 }),
+            innerOcta: new THREE.LineBasicMaterial({ color: 0xff4444 }),
+            used: new THREE.MeshStandardMaterial({ color: 0xffff00, emissive: 0x333300 })
+        };
+        
+        const shellColors = {
+            0: 0xff0000, 2: 0xff6600, 4: 0xffcc00, 6: 0x88ff00,
+            8: 0x00ff88, 10: 0x00ccff, 12: 0x0066ff, 16: 0xaa00ff, 18: 0xff00aa
+        };
+        
+        for (const r2 of Object.keys(shellColors)) {
+            mats[`s${r2}`] = new THREE.MeshStandardMaterial({ 
+                color: shellColors[r2], 
+                transparent: true, 
+                opacity: 0.6 
+            });
+        }
+        
+        const geoms = {
+            sm: new THREE.SphereGeometry(0.02, 8, 8),
+            md: new THREE.SphereGeometry(0.03, 12, 12),
+            lg: new THREE.SphereGeometry(0.04, 16, 16)
+        };
+        
+        function rebuild() {
+            while (mainGroup.children.length) mainGroup.remove(mainGroup.children[0]);
+            
+            const show = {
+                faces: document.getElementById('showFaces').checked,
+                edges: document.getElementById('showEdges').checked,
+                verts: document.getElementById('showVerts').checked,
+                outerOcta: document.getElementById('showOuterOcta').checked,
+                innerOcta: document.getElementById('showInnerOcta').checked,
+                axes: document.getElementById('showAxes').checked
+            };
+            
+            // Faces
+            if (show.faces) {
+                const geom = new THREE.BufferGeometry();
+                const pos = [];
+                for (const tri of triangles) {
+                    for (const i of tri) pos.push(...verticesUnit[i]);
+                }
+                geom.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+                geom.computeVertexNormals();
+                mainGroup.add(new THREE.Mesh(geom, mats.face));
+            }
+            
+            // Edges
+            if (show.edges) {
+                for (const tri of triangles) {
+                    const pts = [vec3(verticesUnit[tri[0]]), vec3(verticesUnit[tri[1]]), 
+                                 vec3(verticesUnit[tri[2]]), vec3(verticesUnit[tri[0]])];
+                    mainGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), mats.edge));
+                }
+            }
+            
+            // Vertices
+            if (show.verts) {
+                for (const v of verticesUnit) {
+                    const s = new THREE.Mesh(geoms.md, mats.vert);
+                    s.position.set(...v);
+                    mainGroup.add(s);
+                }
+            }
+            
+            // Octahedra
+            if (show.outerOcta) {
+                for (const [i,j] of EDGES) {
+                    const pts = [vec3(toUnit(OUTER[i])), vec3(toUnit(OUTER[j]))];
+                    mainGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), mats.outerOcta));
+                }
+            }
+            if (show.innerOcta) {
+                for (const [i,j] of EDGES) {
+                    const pts = [vec3(toUnit(INNER[i])), vec3(toUnit(INNER[j]))];
+                    mainGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), mats.innerOcta));
+                }
+            }
+            
+            // X, Y, Z Axes
+            if (show.axes) {
+                const axisLen = 1.3;  // Slightly beyond outer octahedron
+                const axisWidth = 3;
+                
+                // X axis - Red
+                const xMat = new THREE.LineBasicMaterial({ color: 0xff0000, linewidth: axisWidth });
+                const xPts = [vec3([-axisLen, 0, 0]), vec3([axisLen, 0, 0])];
+                mainGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(xPts), xMat));
+                
+                // Y axis - Green
+                const yMat = new THREE.LineBasicMaterial({ color: 0x00ff00, linewidth: axisWidth });
+                const yPts = [vec3([0, -axisLen, 0]), vec3([0, axisLen, 0])];
+                mainGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(yPts), yMat));
+                
+                // Z axis - Blue
+                const zMat = new THREE.LineBasicMaterial({ color: 0x0088ff, linewidth: axisWidth });
+                const zPts = [vec3([0, 0, -axisLen]), vec3([0, 0, axisLen])];
+                mainGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(zPts), zMat));
+                
+                // Add axis labels using small spheres at the positive ends
+                const xSphere = new THREE.Mesh(geoms.sm, new THREE.MeshBasicMaterial({ color: 0xff0000 }));
+                xSphere.position.set(axisLen, 0, 0);
+                mainGroup.add(xSphere);
+                
+                const ySphere = new THREE.Mesh(geoms.sm, new THREE.MeshBasicMaterial({ color: 0x00ff00 }));
+                ySphere.position.set(0, axisLen, 0);
+                mainGroup.add(ySphere);
+                
+                const zSphere = new THREE.Mesh(geoms.sm, new THREE.MeshBasicMaterial({ color: 0x0088ff }));
+                zSphere.position.set(0, 0, axisLen);
+                mainGroup.add(zSphere);
+            }
+            
+            // Shells
+            for (const r2 of [0, 2, 4, 6, 8, 10, 12, 16, 18]) {
+                const el = document.getElementById(`shell${r2}`);
+                if (!el || !el.checked) continue;
+                const pts = shells[r2] || [];
+                const mat = mats[`s${r2}`];
+                
+                for (const pt of pts) {
+                    const isUsed = usedFCC.has(pt.join(','));
+                    const s = new THREE.Mesh(geoms.md, isUsed ? mats.used : mat);
+                    s.position.set(...toUnit(pt));
+                    mainGroup.add(s);
+                }
+            }
+        }
+        
+        rebuild();
+        document.querySelectorAll('input').forEach(el => el.addEventListener('change', rebuild));
+        
+        window.setView = v => {
+            if (v === 'face') mainGroup.rotation.set(0, 0, 0);
+            else if (v === 'vertex') mainGroup.rotation.set(Math.atan(1/Math.sqrt(2)), Math.PI/4, 0);
+            else if (v === 'edge') mainGroup.rotation.set(0, Math.PI/4, 0);
+        };
+        
+        let drag = false, pm = {x:0, y:0};
+        container.addEventListener('mousedown', e => { drag = true; pm = {x:e.clientX, y:e.clientY}; });
+        container.addEventListener('mousemove', e => {
+            if (drag) {
+                mainGroup.rotation.y += (e.clientX - pm.x) * 0.01;
+                mainGroup.rotation.x += (e.clientY - pm.y) * 0.01;
+                pm = {x:e.clientX, y:e.clientY};
+            }
+        });
+        container.addEventListener('mouseup', () => drag = false);
+        container.addEventListener('mouseleave', () => drag = false);
+        container.addEventListener('wheel', e => { e.preventDefault(); camera.position.multiplyScalar(1 + e.deltaY*0.001); }, {passive:false});
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth/window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+        
+        (function animate() {
+            requestAnimationFrame(animate);
+            if (document.getElementById('autoRotate').checked && !drag) mainGroup.rotation.y += 0.005;
+            renderer.render(scene, camera);
+        })();
+        
+        console.log("Vertices by shell:", shellCounts);
+        console.log("All vertices:", vertices);
+    </script>
+</body>
+</html>
