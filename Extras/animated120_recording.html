@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>5-JB Compound - Jitterbug Animation</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: system-ui, sans-serif;
+            background: #0a0a12;
+            color: #eee;
+            overflow: hidden;
+        }
+        #controls {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            background: rgba(18, 18, 26, 0.9);
+            padding: 15px;
+            border-radius: 8px;
+            z-index: 100;
+            width: 200px;
+            max-height: calc(100vh - 30px);
+            overflow-y: auto;
+        }
+        h1 { font-size: 1rem; color: #7af; margin-bottom: 10px; }
+        .control-row { margin: 8px 0; font-size: 0.85rem; }
+        .control-row label { display: block; margin-bottom: 4px; color: #888; }
+        input[type="range"] { width: 100%; }
+        input[type="checkbox"] { margin-right: 8px; }
+        .value { color: #7af; font-weight: bold; }
+        button {
+            background: #335;
+            color: #fff;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 6px;
+            width: 100%;
+            font-size: 0.8rem;
+        }
+        button:hover { background: #447; }
+        #recordBtn { background: #533; }
+        #recordBtn:hover { background: #744; }
+        #recordBtn.recording { background: #a33; animation: pulse 1s infinite; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        .record-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            background: #f00;
+            border-radius: 50%;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+        #recordBtn:not(.recording) .record-indicator { background: #888; }
+        #canvas-container { width: 100vw; height: 100vh; }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <h1>5-JB Compound Jitterbug</h1>
+        <div class="control-row">
+            <label><input type="checkbox" id="animateCheck" checked> Animate</label>
+        </div>
+        <div class="control-row">
+            <label>JB Angle: <span id="angleValue" class="value">60°</span></label>
+            <input type="range" id="angleSlider" min="0" max="360" value="60" step="0.1">
+            <input type="number" id="angleInput" min="0" max="360" value="60" style="width: 60px; margin-top: 4px;">
+        </div>
+        <div class="control-row">
+            <label>Speed: <span id="speedValue" class="value">0.35</span></label>
+            <input type="range" id="speedSlider" min="0.05" max="2" value="0.35" step="0.05">
+        </div>
+        <div class="control-row">
+            <label><input type="checkbox" id="showTracesCheck" checked> Show Vertex Traces</label>
+        </div>
+        <div class="control-row">
+            <label><input type="checkbox" id="allowIntersect"> Allow Intersect</label>
+        </div>
+        <div class="control-row">
+            <label><input type="checkbox" id="showEdgesCheck" checked> Show Edges</label>
+        </div>
+        <div class="control-row">
+            <label><input type="checkbox" id="showFacesCheck" checked> Show Faces</label>
+        </div>
+        <div class="control-row">
+            <label><input type="checkbox" id="showGapsCheck"> Show Gap Triangles</label>
+        </div>
+        <div class="control-row">
+            <label><input type="checkbox" id="autoRotate" checked> Auto Rotate View</label>
+        </div>
+        <button id="resetBtn">Octahedron (60°)</button>
+        <button id="icosaBtn">Icosahedron (22°)</button>
+        <button id="cuboctaBtn">Cuboctahedron (0°)</button>
+        <div class="control-row" style="border-top: 1px solid #333; padding-top: 8px; margin-top: 8px;">
+            <button id="recordBtn"><span class="record-indicator"></span>Start Recording</button>
+        </div>
+        <div id="recordStatus" style="font-size: 0.75rem; color: #888; margin-top: 4px;"></div>
+        <div class="control-row" style="border-top: 1px solid #333; padding-top: 8px; margin-top: 8px;">
+            <label style="color: #ff6666;"><input type="checkbox" id="showOct1" checked> Octahedron 1</label>
+        </div>
+        <div class="control-row">
+            <label style="color: #66ff66;"><input type="checkbox" id="showOct2" checked> Octahedron 2</label>
+        </div>
+        <div class="control-row">
+            <label style="color: #6666ff;"><input type="checkbox" id="showOct3" checked> Octahedron 3</label>
+        </div>
+        <div class="control-row">
+            <label style="color: #ffff66;"><input type="checkbox" id="showOct4" checked> Octahedron 4</label>
+        </div>
+        <div class="control-row">
+            <label style="color: #ff66ff;"><input type="checkbox" id="showOct5" checked> Octahedron 5</label>
+        </div>
+        <div class="control-row" style="border-top: 1px solid #333; padding-top: 8px; margin-top: 8px;">
+            <label style="color: #fff;">Vertex Traces:</label>
+        </div>
+        <div class="control-row">
+            <label style="color: #ff6666;"><input type="checkbox" id="showTrace1" checked> Trace 1</label>
+        </div>
+        <div class="control-row">
+            <label style="color: #66ff66;"><input type="checkbox" id="showTrace2" checked> Trace 2</label>
+        </div>
+        <div class="control-row">
+            <label style="color: #6666ff;"><input type="checkbox" id="showTrace3" checked> Trace 3</label>
+        </div>
+        <div class="control-row">
+            <label style="color: #ffff66;"><input type="checkbox" id="showTrace4" checked> Trace 4</label>
+        </div>
+        <div class="control-row">
+            <label style="color: #ff66ff;"><input type="checkbox" id="showTrace5" checked> Trace 5</label>
+        </div>
+    </div>
+    <div id="canvas-container"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // === CONFIGURATION ===
+        const EL = 1.0;  // Edge length
+        const PHI = (1 + Math.sqrt(5)) / 2;  // Golden ratio
+        
+        // Icosahedral 5-fold axis (normalized)
+        const FIVE_FOLD_AXIS = new THREE.Vector3(0, 1, PHI).normalize();
+        
+        // Colors for each of the 5 octahedra
+        const COLORS = [
+            0xff6666,  // red
+            0x66ff66,  // green
+            0x6666ff,  // blue
+            0xffff66,  // yellow
+            0xff66ff   // magenta
+        ];
+        
+        // Icosahedron angle (where all edges are equal)
+        const ICOSAHEDRON_ANGLE = 22.238756;
+
+        // === THREE.JS SETUP ===
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0a0a12);
+        
+        const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 0, 4);
+        camera.lookAt(0, 0, 0);
+        
+        const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(window.devicePixelRatio);
+        container.appendChild(renderer.domElement);
+        
+        // Lighting
+        scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+        const light1 = new THREE.DirectionalLight(0xffffff, 0.8);
+        light1.position.set(5, 5, 5);
+        scene.add(light1);
+        const light2 = new THREE.DirectionalLight(0xffffff, 0.3);
+        light2.position.set(-5, -5, 5);
+        scene.add(light2);
+
+        // Main group for view rotation
+        const mainGroup = new THREE.Group();
+        scene.add(mainGroup);
+
+        // === JITTERBUG GEOMETRY ===
+        
+        function makeJBFace(v1, v2, v3, faceMat, showEdges, showFaces) {
+            const group = new THREE.Group();
+            
+            // Face centroid (normalized) = hinge axis
+            const fc = new THREE.Vector3().add(v1).add(v2).add(v3).divideScalar(3.0);
+            fc.normalize();
+            group.userData = fc;
+            
+            // Store original vertices for reference
+            group.userData.vertices = [v1.clone(), v2.clone(), v3.clone()];
+            
+            // 3 edges as simple lines
+            if (showEdges) {
+                const edgeMaterial = new THREE.LineBasicMaterial({ color: 0x000000 });
+                const points = [v1, v2, v3, v1];
+                const edgeGeom = new THREE.BufferGeometry().setFromPoints(points);
+                const edgeLine = new THREE.Line(edgeGeom, edgeMaterial);
+                group.add(edgeLine);
+            }
+            
+            // Triangle face
+            if (showFaces) {
+                const geom = new THREE.BufferGeometry();
+                geom.setFromPoints([v1, v2, v3]);
+                geom.computeVertexNormals();
+                const mesh = new THREE.Mesh(geom, faceMat);
+                group.add(mesh);
+            }
+            
+            return group;
+        }
+        
+        function makeJB(color, showEdges, showFaces, showGaps, octIndex) {
+            const group = new THREE.Group();
+            
+            // Face material with polygon offset to reduce z-fighting
+            const faceMat = new THREE.MeshStandardMaterial({
+                color: color,
+                side: THREE.DoubleSide,
+                roughness: 0.6,
+                metalness: 0.1,
+                polygonOffset: true,
+                polygonOffsetFactor: octIndex,
+                polygonOffsetUnits: octIndex,
+            });
+            
+            // Gap triangle material (same color as octahedron)
+            const gapMat = new THREE.MeshStandardMaterial({
+                color: color,
+                side: THREE.DoubleSide,
+                roughness: 0.6,
+                metalness: 0.1,
+                polygonOffset: true,
+                polygonOffsetFactor: octIndex,
+                polygonOffsetUnits: octIndex,
+            });
+            
+            // Octahedron vertices - SQUARE BASE (jitterbug math designed for this)
+            // Vertices 0-3 form a square in the XY plane
+            // Vertices 4,5 are the top and bottom apexes
+            const ov = [
+                new THREE.Vector3(0.5 * EL, 0.5 * EL, 0.0),
+                new THREE.Vector3(-0.5 * EL, 0.5 * EL, 0.0),
+                new THREE.Vector3(-0.5 * EL, -0.5 * EL, 0.0),
+                new THREE.Vector3(0.5 * EL, -0.5 * EL, 0.0),
+                new THREE.Vector3(0.0, 0.0, EL / Math.sqrt(2.0)),
+                new THREE.Vector3(0.0, 0.0, -EL / Math.sqrt(2.0))
+            ];
+            
+            // 8 faces (specific order required for jitterbug alternation)
+            const faceIndices = [
+                [0, 1, 4], [1, 2, 4], [2, 3, 4], [3, 0, 4],  // top 4
+                [0, 3, 5], [3, 2, 5], [2, 1, 5], [1, 0, 5]   // bottom 4
+            ];
+            
+            // Store face groups for gap triangle creation
+            const faceGroups = [];
+            
+            faceIndices.forEach(([i, j, k]) => {
+                const face = makeJBFace(ov[i], ov[j], ov[k], faceMat, showEdges, showFaces);
+                faceGroups.push(face);
+                group.add(face);
+            });
+            
+            // Store face groups for gap triangle updates
+            group.userData.faceGroups = faceGroups;
+            group.userData.originalVertices = ov;
+            group.userData.faceIndices = faceIndices;
+            group.userData.gapMat = gapMat;
+            
+            // 12 gap triangles - one per edge
+            const gapTriangleSpecs = [
+                { meeting: 0, split: 1, faceA: 0, faceB: 7 },
+                { meeting: 0, split: 3, faceA: 3, faceB: 4 },
+                { meeting: 4, split: 0, faceA: 0, faceB: 3 },
+                { meeting: 5, split: 0, faceA: 4, faceB: 7 },
+                { meeting: 2, split: 1, faceA: 1, faceB: 6 },
+                { meeting: 1, split: 4, faceA: 0, faceB: 1 },
+                { meeting: 1, split: 5, faceA: 6, faceB: 7 },
+                { meeting: 2, split: 3, faceA: 2, faceB: 5 },
+                { meeting: 4, split: 2, faceA: 1, faceB: 2 },
+                { meeting: 5, split: 2, faceA: 5, faceB: 6 },
+                { meeting: 3, split: 4, faceA: 2, faceB: 3 },
+                { meeting: 3, split: 5, faceA: 4, faceB: 5 },
+            ];
+            
+            group.userData.gapTriangleSpecs = gapTriangleSpecs;
+            
+            // Create 12 gap triangle meshes
+            const gapTriangles = [];
+            for (let i = 0; i < 12; i++) {
+                const geom = new THREE.BufferGeometry();
+                const positions = new Float32Array(9);
+                geom.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+                geom.setIndex([0, 1, 2]);
+                const mesh = new THREE.Mesh(geom, gapMat);
+                mesh.visible = showGaps;
+                gapTriangles.push(mesh);
+                group.add(mesh);
+            }
+            group.userData.gapTriangles = gapTriangles;
+            
+            return group;
+        }
+        
+        function make5JBCompound(showEdges, showFaces, showGaps) {
+            const compound = new THREE.Group();
+            
+            // Corrective rotation to align square-base octahedron with axis-aligned orientation
+            // This rotates 45° around Z axis to convert from square-base to axis-aligned
+            const correctiveRotation = new THREE.Quaternion().setFromAxisAngle(
+                new THREE.Vector3(0, 0, 1),
+                Math.PI / 4  // 45 degrees
+            );
+            
+            for (let i = 0; i < 5; i++) {
+                const jb = makeJB(COLORS[i], showEdges, showFaces, showGaps, i);
+                
+                // First apply the 72° * i rotation around the 5-fold axis
+                const angle = (72 * i) * Math.PI / 180;
+                const compoundRotation = new THREE.Quaternion().setFromAxisAngle(FIVE_FOLD_AXIS, angle);
+                
+                // Combine: first corrective, then compound rotation
+                // Order matters: we want to correct the octahedron first, then position it in the compound
+                jb.quaternion.copy(compoundRotation).multiply(correctiveRotation);
+                
+                // Store the base rotation for animation
+                jb.userData.baseQuaternion = jb.quaternion.clone();
+                jb.userData.index = i;
+                
+                compound.add(jb);
+            }
+            
+            return compound;
+        }
+
+        // === STATE ===
+        let compound = null;
+        let jbCurrentAngle = 60.0;
+        let jbInitialRadius = Math.sqrt(2/3) * Math.cos(Math.PI / 180 * 60);
+        let animationOn = true;
+        let speed = 0.35;
+        let showEdges = true;
+        let showFaces = true;
+        let showGaps = false;
+        let autoRotate = true;
+        let octVisibility = [true, true, true, true, true];
+        let showTraces = true;
+        let allowIntersect = false;
+        let traceGroup = null;
+
+        function rebuildCompound() {
+            if (compound) {
+                mainGroup.remove(compound);
+            }
+            compound = make5JBCompound(showEdges, showFaces, showGaps);
+            mainGroup.add(compound);
+            updateOctVisibility();
+        }
+        
+        function updateOctVisibility() {
+            if (!compound) return;
+            compound.children.forEach((oct, i) => {
+                oct.visible = octVisibility[i];
+            });
+        }
+
+        rebuildCompound();
+
+        // === VERTEX TRACES ===
+        // Store trace groups for each octahedron
+        let traceGroups = [null, null, null, null, null];
+        let traceVisibility = [true, true, true, true, true];
+        
+        // Calculate the path each vertex takes during the jitterbug animation
+        function createVertexTraces() {
+            // Remove old trace groups
+            traceGroups.forEach(tg => {
+                if (tg) mainGroup.remove(tg);
+            });
+            traceGroups = [];
+            
+            if (traceGroup) {
+                mainGroup.remove(traceGroup);
+            }
+            traceGroup = new THREE.Group();
+            
+            // The angle ranges depend on allowIntersect
+            // If allowing intersect: full 0-360
+            // If not: 0-60, 120-240, 300-360
+            const angleRanges = allowIntersect 
+                ? [{ start: 0, end: 360 }]
+                : [
+                    { start: 0, end: 60 },
+                    { start: 120, end: 240 },
+                    { start: 300, end: 360 }
+                ];
+            
+            // For each octahedron in the compound
+            compound.children.forEach((jb, jbIndex) => {
+                const faceGroups = jb.userData.faceGroups;
+                const originalVertices = jb.userData.originalVertices;
+                const baseQuat = jb.userData.baseQuaternion;
+                
+                if (!faceGroups || !originalVertices) return;
+                
+                // Create a group for this octahedron's traces
+                const octTraceGroup = new THREE.Group();
+                traceGroups.push(octTraceGroup);
+                
+                // Use matching color for traces
+                const traceColor = COLORS[jbIndex];
+                const traceMaterial = new THREE.LineBasicMaterial({ 
+                    color: traceColor,
+                    transparent: true,
+                    opacity: 0.8
+                });
+                
+                // Track which vertices we've already traced (avoid duplicates)
+                // Each vertex appears in multiple faces
+                const vertexTraced = [false, false, false, false, false, false];
+                
+                // For each face, trace each of its 3 vertices
+                faceGroups.forEach((face, faceIndex) => {
+                    const faceIndices = jb.userData.faceIndices[faceIndex];
+                    const hinge = face.userData;
+                    if (!hinge || !hinge.isVector3) return;
+                    
+                    faceIndices.forEach((vertIndex) => {
+                        if (vertexTraced[vertIndex]) return;
+                        vertexTraced[vertIndex] = true;
+                        
+                        // Calculate the path this vertex takes through each angle range separately
+                        const numStepsPerDegree = 1;  // Points per degree
+                        
+                        angleRanges.forEach(range => {
+                            const tracePoints = [];
+                            const numSteps = (range.end - range.start) * numStepsPerDegree;
+                            
+                            for (let step = 0; step <= numSteps; step++) {
+                                const angle = range.start + (step / numSteps) * (range.end - range.start);
+                                const currentRadius = Math.sqrt(2/3) * Math.cos(Math.PI / 180 * angle) - jbInitialRadius;
+                                
+                                // Find which face this vertex belongs to and calculate its position
+                                let vertexPos = null;
+                                
+                                for (let fi = 0; fi < faceGroups.length; fi++) {
+                                    const fIndices = jb.userData.faceIndices[fi];
+                                    if (fIndices.includes(vertIndex)) {
+                                        const fHinge = faceGroups[fi].userData;
+                                        if (!fHinge || !fHinge.isVector3) continue;
+                                        
+                                        const direction = (fi % 2 === 0) ? -1 : 1;
+                                        const angleRad = (Math.PI / 180) * (angle - 60) * direction;
+                                        
+                                        const quat = new THREE.Quaternion().setFromAxisAngle(fHinge, angleRad);
+                                        const pos = fHinge.clone().multiplyScalar(currentRadius);
+                                        
+                                        // Transform the original vertex
+                                        vertexPos = originalVertices[vertIndex].clone();
+                                        vertexPos.applyQuaternion(quat);
+                                        vertexPos.add(pos);
+                                        
+                                        // Apply the octahedron's base rotation to get world coords
+                                        vertexPos.applyQuaternion(baseQuat);
+                                        break;
+                                    }
+                                }
+                                
+                                if (vertexPos) {
+                                    tracePoints.push(vertexPos);
+                                }
+                            }
+                            
+                            // Create line geometry for this trace segment
+                            if (tracePoints.length > 1) {
+                                const traceGeom = new THREE.BufferGeometry().setFromPoints(tracePoints);
+                                const traceLine = new THREE.Line(traceGeom, traceMaterial);
+                                octTraceGroup.add(traceLine);
+                            }
+                        });
+                    });
+                });
+                
+                octTraceGroup.visible = showTraces && traceVisibility[jbIndex];
+                traceGroup.add(octTraceGroup);
+            });
+            
+            mainGroup.add(traceGroup);
+        }
+        
+        function updateTraceVisibility() {
+            traceGroups.forEach((tg, i) => {
+                if (tg) tg.visible = showTraces && traceVisibility[i];
+            });
+        }
+        
+        createVertexTraces();
+
+        // === ANIMATION ===
+        function updateJitterbug(angle) {
+            const currentRadius = Math.sqrt(2/3) * Math.cos(Math.PI / 180 * angle) - jbInitialRadius;
+            
+            compound.children.forEach((jb, jbIndex) => {
+                const faceGroups = jb.userData.faceGroups;
+                const gapTriangles = jb.userData.gapTriangles;
+                const originalVertices = jb.userData.originalVertices;
+                
+                if (!faceGroups) return;
+                
+                // Update each face's transform
+                faceGroups.forEach((face, faceIndex) => {
+                    const hinge = face.userData;
+                    if (!hinge || !hinge.isVector3) return;
+                    
+                    // Alternating faces rotate opposite directions
+                    const direction = (faceIndex % 2 === 0) ? -1 : 1;
+                    const angleRad = (Math.PI / 180) * (angle - 60) * direction;
+                    
+                    face.quaternion.setFromAxisAngle(hinge, angleRad);
+                    
+                    const pos = hinge.clone().multiplyScalar(currentRadius);
+                    face.position.copy(pos);
+                });
+                
+                // Update gap triangles
+                if (gapTriangles && jb.userData.gapTriangleSpecs) {
+                    const specs = jb.userData.gapTriangleSpecs;
+                    
+                    specs.forEach((spec, gapIndex) => {
+                        const { meeting, split, faceA, faceB } = spec;
+                        
+                        const faceAGroup = faceGroups[faceA];
+                        const faceBGroup = faceGroups[faceB];
+                        
+                        const hingeA = faceAGroup.userData;
+                        const hingeB = faceBGroup.userData;
+                        
+                        const dirA = (faceA % 2 === 0) ? -1 : 1;
+                        const dirB = (faceB % 2 === 0) ? -1 : 1;
+                        
+                        const angleRadA = (Math.PI / 180) * (angle - 60) * dirA;
+                        const angleRadB = (Math.PI / 180) * (angle - 60) * dirB;
+                        
+                        const quatA = new THREE.Quaternion().setFromAxisAngle(hingeA, angleRadA);
+                        const quatB = new THREE.Quaternion().setFromAxisAngle(hingeB, angleRadB);
+                        
+                        const posA = hingeA.clone().multiplyScalar(currentRadius);
+                        const posB = hingeB.clone().multiplyScalar(currentRadius);
+                        
+                        const meetingOrig = originalVertices[meeting].clone();
+                        const meetingWorld = meetingOrig.clone().applyQuaternion(quatA).add(posA);
+                        
+                        const splitOrig = originalVertices[split].clone();
+                        const splitA = splitOrig.clone().applyQuaternion(quatA).add(posA);
+                        const splitB = splitOrig.clone().applyQuaternion(quatB).add(posB);
+                        
+                        const gapMesh = gapTriangles[gapIndex];
+                        const positions = gapMesh.geometry.attributes.position.array;
+                        
+                        positions[0] = meetingWorld.x; positions[1] = meetingWorld.y; positions[2] = meetingWorld.z;
+                        positions[3] = splitA.x; positions[4] = splitA.y; positions[5] = splitA.z;
+                        positions[6] = splitB.x; positions[7] = splitB.y; positions[8] = splitB.z;
+                        
+                        gapMesh.geometry.attributes.position.needsUpdate = true;
+                        gapMesh.geometry.computeVertexNormals();
+                    });
+                }
+            });
+        }
+
+        updateJitterbug(60);
+
+        // === UI CONTROLS ===
+        const animateCheck = document.getElementById('animateCheck');
+        const angleSlider = document.getElementById('angleSlider');
+        const angleInput = document.getElementById('angleInput');
+        const angleValue = document.getElementById('angleValue');
+        const speedSlider = document.getElementById('speedSlider');
+        const speedValue = document.getElementById('speedValue');
+        const showTracesCheck = document.getElementById('showTracesCheck');
+        const showEdgesCheck = document.getElementById('showEdgesCheck');
+        const showFacesCheck = document.getElementById('showFacesCheck');
+        const showGapsCheck = document.getElementById('showGapsCheck');
+        const autoRotateCheck = document.getElementById('autoRotate');
+        const resetBtn = document.getElementById('resetBtn');
+        const icosaBtn = document.getElementById('icosaBtn');
+        const cuboctaBtn = document.getElementById('cuboctaBtn');
+
+        animateCheck.addEventListener('change', (e) => animationOn = e.target.checked);
+
+        angleSlider.addEventListener('input', (e) => {
+            jbCurrentAngle = parseFloat(e.target.value);
+            angleValue.textContent = jbCurrentAngle.toFixed(1) + '°';
+            angleInput.value = jbCurrentAngle.toFixed(1);
+            updateJitterbug(jbCurrentAngle);
+        });
+
+        angleInput.addEventListener('input', (e) => {
+            let val = parseFloat(e.target.value);
+            if (isNaN(val)) val = 60;
+            val = Math.max(0, Math.min(360, val));
+            jbCurrentAngle = val;
+            angleSlider.value = val;
+            angleValue.textContent = val.toFixed(1) + '°';
+            updateJitterbug(jbCurrentAngle);
+        });
+
+        speedSlider.addEventListener('input', (e) => {
+            speed = parseFloat(e.target.value);
+            speedValue.textContent = speed.toFixed(2);
+        });
+
+        showTracesCheck.addEventListener('change', (e) => {
+            showTraces = e.target.checked;
+            updateTraceVisibility();
+        });
+
+        const allowIntersectCheck = document.getElementById('allowIntersect');
+        allowIntersectCheck.addEventListener('change', (e) => {
+            allowIntersect = e.target.checked;
+            createVertexTraces();  // Rebuild traces with new range
+        });
+
+        // Trace visibility toggles
+        for (let i = 1; i <= 5; i++) {
+            document.getElementById(`showTrace${i}`).addEventListener('change', (e) => {
+                traceVisibility[i - 1] = e.target.checked;
+                updateTraceVisibility();
+            });
+        }
+
+        showEdgesCheck.addEventListener('change', (e) => {
+            showEdges = e.target.checked;
+            rebuildCompound();
+            createVertexTraces();
+            updateJitterbug(jbCurrentAngle);
+        });
+
+        showFacesCheck.addEventListener('change', (e) => {
+            showFaces = e.target.checked;
+            rebuildCompound();
+            createVertexTraces();
+            updateJitterbug(jbCurrentAngle);
+        });
+
+        showGapsCheck.addEventListener('change', (e) => {
+            showGaps = e.target.checked;
+            rebuildCompound();
+            createVertexTraces();
+            updateJitterbug(jbCurrentAngle);
+        });
+
+        autoRotateCheck.addEventListener('change', (e) => autoRotate = e.target.checked);
+
+        // Octahedron visibility toggles
+        for (let i = 1; i <= 5; i++) {
+            document.getElementById(`showOct${i}`).addEventListener('change', (e) => {
+                octVisibility[i - 1] = e.target.checked;
+                updateOctVisibility();
+            });
+        }
+
+        resetBtn.addEventListener('click', () => {
+            jbCurrentAngle = 60;
+            angleSlider.value = 60;
+            angleInput.value = 60;
+            angleValue.textContent = '60°';
+            updateJitterbug(60);
+        });
+
+        icosaBtn.addEventListener('click', () => {
+            jbCurrentAngle = ICOSAHEDRON_ANGLE;
+            angleSlider.value = ICOSAHEDRON_ANGLE;
+            angleInput.value = ICOSAHEDRON_ANGLE.toFixed(2);
+            angleValue.textContent = ICOSAHEDRON_ANGLE.toFixed(2) + '°';
+            updateJitterbug(ICOSAHEDRON_ANGLE);
+        });
+
+        cuboctaBtn.addEventListener('click', () => {
+            jbCurrentAngle = 0;
+            angleSlider.value = 0;
+            angleInput.value = 0;
+            angleValue.textContent = '0°';
+            updateJitterbug(0);
+        });
+
+        // === MOUSE CONTROLS ===
+        let isDragging = false;
+        let prevMouse = { x: 0, y: 0 };
+
+        container.addEventListener('mousedown', (e) => {
+            isDragging = true;
+            prevMouse = { x: e.clientX, y: e.clientY };
+        });
+
+        container.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                const dx = e.clientX - prevMouse.x;
+                const dy = e.clientY - prevMouse.y;
+                mainGroup.rotation.y += dx * 0.01;
+                mainGroup.rotation.x += dy * 0.01;
+                prevMouse = { x: e.clientX, y: e.clientY };
+            }
+        });
+
+        container.addEventListener('mouseup', () => isDragging = false);
+        container.addEventListener('mouseleave', () => isDragging = false);
+
+        // Mouse wheel zoom (also works with trackpad two-finger scroll)
+        container.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            const zoomSpeed = 0.001;
+            const scaleFactor = 1 + e.deltaY * zoomSpeed;
+            mainGroup.scale.multiplyScalar(1 / scaleFactor);
+            // Clamp scale to reasonable range
+            const s = mainGroup.scale.x;
+            if (s < 0.1) mainGroup.scale.setScalar(0.1);
+            if (s > 10) mainGroup.scale.setScalar(10);
+        }, { passive: false });
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // === RENDER LOOP ===
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            if (animationOn) {
+                jbCurrentAngle += speed;
+                
+                // Skip over intersection regions unless allowed
+                if (!allowIntersect) {
+                    if (jbCurrentAngle > 60 && jbCurrentAngle < 120) jbCurrentAngle = 120;
+                    if (jbCurrentAngle > 240 && jbCurrentAngle < 300) jbCurrentAngle = 300;
+                }
+                
+                if (jbCurrentAngle > 360) jbCurrentAngle = 0;
+                
+                angleSlider.value = jbCurrentAngle;
+                angleInput.value = jbCurrentAngle.toFixed(0);
+                angleValue.textContent = jbCurrentAngle.toFixed(0) + '°';
+                
+                updateJitterbug(jbCurrentAngle);
+            }
+            
+            if (autoRotate && !isDragging) {
+                mainGroup.rotation.y += 0.003;
+            }
+            
+            renderer.render(scene, camera);
+        }
+
+        // === VIDEO RECORDING (WebM) ===
+        let mediaRecorder = null;
+        let recordedChunks = [];
+        let isRecording = false;
+        let recordingStartTime = 0;
+        const recordBtn = document.getElementById('recordBtn');
+        const recordStatus = document.getElementById('recordStatus');
+        
+        recordBtn.addEventListener('click', () => {
+            if (!isRecording) {
+                startRecording();
+            } else {
+                stopRecording();
+            }
+        });
+        
+        function startRecording() {
+            try {
+                const canvas = renderer.domElement;
+                const stream = canvas.captureStream(30);
+                
+                const mimeTypes = [
+                    'video/webm;codecs=vp9',
+                    'video/webm;codecs=vp8',
+                    'video/webm'
+                ];
+                
+                let mimeType = mimeTypes.find(type => MediaRecorder.isTypeSupported(type)) || 'video/webm';
+                
+                mediaRecorder = new MediaRecorder(stream, { 
+                    mimeType: mimeType,
+                    videoBitsPerSecond: 8000000
+                });
+                
+                recordedChunks = [];
+                recordingStartTime = performance.now();
+                
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        recordedChunks.push(event.data);
+                    }
+                };
+                
+                mediaRecorder.onstop = () => {
+                    const blob = new Blob(recordedChunks, { type: mimeType });
+                    downloadBlob(blob, 'jitterbug-animation.webm');
+                    const duration = ((performance.now() - recordingStartTime) / 1000).toFixed(1);
+                    recordStatus.textContent = `Saved! ${duration}s, ${(blob.size / 1024 / 1024).toFixed(1)} MB`;
+                };
+                
+                mediaRecorder.start(100);
+                isRecording = true;
+                recordBtn.classList.add('recording');
+                recordBtn.innerHTML = '<span class="record-indicator"></span>Stop Recording';
+                recordStatus.textContent = 'Recording...';
+                
+            } catch (err) {
+                console.error('Recording error:', err);
+                recordStatus.textContent = 'Error: ' + err.message;
+            }
+        }
+        
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+            }
+            isRecording = false;
+            recordBtn.classList.remove('recording');
+            recordBtn.innerHTML = '<span class="record-indicator"></span>Start Recording';
+            recordStatus.textContent = 'Processing...';
+        }
+        
+        function downloadBlob(blob, filename) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        animate();
+    </script>
+</body>
+</html>
