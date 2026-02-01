@@ -42,6 +42,23 @@
             font-size: 0.8rem;
         }
         button:hover { background: #447; }
+        #recordBtn { background: #533; }
+        #recordBtn:hover { background: #744; }
+        #recordBtn.recording { background: #a33; animation: pulse 1s infinite; }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+        .record-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            background: #f00;
+            border-radius: 50%;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+        #recordBtn:not(.recording) .record-indicator { background: #888; }
         #canvas-container { width: 100vw; height: 100vh; }
     </style>
 </head>
@@ -81,6 +98,10 @@
         <button id="resetBtn">Octahedron (60°)</button>
         <button id="icosaBtn">Icosahedron (22°)</button>
         <button id="cuboctaBtn">Cuboctahedron (0°)</button>
+        <div class="control-row" style="border-top: 1px solid #333; padding-top: 8px; margin-top: 8px;">
+            <button id="recordBtn"><span class="record-indicator"></span>Start Recording</button>
+        </div>
+        <div id="recordStatus" style="font-size: 0.75rem; color: #888; margin-top: 4px;"></div>
         <div class="control-row" style="border-top: 1px solid #333; padding-top: 8px; margin-top: 8px;">
             <label style="color: #ff6666;"><input type="checkbox" id="showOct1" checked> Octahedron 1</label>
         </div>
@@ -147,7 +168,7 @@
         camera.position.set(0, 0, 4);
         camera.lookAt(0, 0, 0);
         
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.setPixelRatio(window.devicePixelRatio);
         container.appendChild(renderer.domElement);
@@ -741,6 +762,89 @@
             }
             
             renderer.render(scene, camera);
+        }
+
+        // === VIDEO RECORDING (WebM) ===
+        let mediaRecorder = null;
+        let recordedChunks = [];
+        let isRecording = false;
+        let recordingStartTime = 0;
+        const recordBtn = document.getElementById('recordBtn');
+        const recordStatus = document.getElementById('recordStatus');
+        
+        recordBtn.addEventListener('click', () => {
+            if (!isRecording) {
+                startRecording();
+            } else {
+                stopRecording();
+            }
+        });
+        
+        function startRecording() {
+            try {
+                const canvas = renderer.domElement;
+                const stream = canvas.captureStream(30);
+                
+                const mimeTypes = [
+                    'video/webm;codecs=vp9',
+                    'video/webm;codecs=vp8',
+                    'video/webm'
+                ];
+                
+                let mimeType = mimeTypes.find(type => MediaRecorder.isTypeSupported(type)) || 'video/webm';
+                
+                mediaRecorder = new MediaRecorder(stream, { 
+                    mimeType: mimeType,
+                    videoBitsPerSecond: 8000000
+                });
+                
+                recordedChunks = [];
+                recordingStartTime = performance.now();
+                
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        recordedChunks.push(event.data);
+                    }
+                };
+                
+                mediaRecorder.onstop = () => {
+                    const blob = new Blob(recordedChunks, { type: mimeType });
+                    downloadBlob(blob, 'jitterbug-animation.webm');
+                    const duration = ((performance.now() - recordingStartTime) / 1000).toFixed(1);
+                    recordStatus.textContent = `Saved! ${duration}s, ${(blob.size / 1024 / 1024).toFixed(1)} MB`;
+                };
+                
+                mediaRecorder.start(100);
+                isRecording = true;
+                recordBtn.classList.add('recording');
+                recordBtn.innerHTML = '<span class="record-indicator"></span>Stop Recording';
+                recordStatus.textContent = 'Recording...';
+                
+            } catch (err) {
+                console.error('Recording error:', err);
+                recordStatus.textContent = 'Error: ' + err.message;
+            }
+        }
+        
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+            }
+            isRecording = false;
+            recordBtn.classList.remove('recording');
+            recordBtn.innerHTML = '<span class="record-indicator"></span>Start Recording';
+            recordStatus.textContent = 'Processing...';
+        }
+        
+        function downloadBlob(blob, filename) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
         }
 
         animate();
