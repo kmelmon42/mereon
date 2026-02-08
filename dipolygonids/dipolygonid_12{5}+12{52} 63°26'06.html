@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Equiradial Icosahedral Dipolygonid — 12{5} + 12{5/2} | 63°26'06"</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300&family=JetBrains+Mono:wght@300;400&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #08080c;
+    color: #e8e4dc;
+    font-family: 'Cormorant Garamond', serif;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  #canvas-container {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    z-index: 1;
+  }
+
+  canvas { display: block; }
+
+  .overlay {
+    position: absolute;
+    z-index: 10;
+    pointer-events: none;
+  }
+
+  .title-block {
+    top: 20px; left: 24px;
+  }
+
+  .title-block h1 {
+    font-size: clamp(1.1rem, 2.5vw, 1.6rem);
+    font-weight: 300;
+    letter-spacing: 0.06em;
+    color: #c9b896;
+    line-height: 1.25;
+  }
+
+  .title-block .subtitle {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: clamp(0.55rem, 1.2vw, 0.7rem);
+    font-weight: 300;
+    color: #6a6458;
+    margin-top: 5px;
+    letter-spacing: 0.1em;
+  }
+
+  .info-block {
+    bottom: 20px; left: 24px;
+  }
+
+  .info-block .label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.58rem;
+    font-weight: 300;
+    color: #4a4840;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .info-block .value {
+    font-size: 0.95rem;
+    font-weight: 300;
+    color: #a89e8c;
+    margin-bottom: 8px;
+  }
+
+  .controls-block {
+    bottom: 20px; right: 24px;
+    pointer-events: all;
+    text-align: right;
+  }
+
+  .ctrl-row {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+
+  .controls-block label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.56rem;
+    font-weight: 300;
+    color: #4a4840;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    min-width: 50px;
+    text-align: right;
+  }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100px;
+    height: 1px;
+    background: #2a2820;
+    outline: none;
+    cursor: pointer;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: #c9b896;
+    cursor: pointer;
+  }
+
+  .btn {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.56rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    background: transparent;
+    border: 1px solid #1e1e1a;
+    color: #5a5850;
+    padding: 4px 10px;
+    cursor: pointer;
+    transition: all 0.3s;
+  }
+
+  .btn:hover { border-color: #c9b896; color: #c9b896; }
+  .btn.on { border-color: #c9b896; color: #c9b896; background: rgba(201,184,150,0.06); }
+
+  .legend {
+    top: 20px; right: 24px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 4px;
+  }
+
+  .legend-swatch {
+    width: 10px; height: 3px;
+    border-radius: 1px;
+  }
+
+  .legend-text {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.56rem;
+    font-weight: 300;
+    color: #5a5850;
+    letter-spacing: 0.08em;
+  }
+
+  #phase-bar {
+    position: absolute;
+    left: 50%;
+    bottom: 20px;
+    transform: translateX(-50%);
+    z-index: 10;
+    pointer-events: none;
+    text-align: center;
+  }
+
+  #phase-bar .track {
+    width: 200px;
+    height: 2px;
+    background: #1a1a18;
+    border-radius: 1px;
+    position: relative;
+    margin: 0 auto 6px;
+  }
+
+  #phase-bar .mark {
+    position: absolute;
+    width: 1px; height: 8px;
+    background: #2a2a28;
+    top: -3px;
+  }
+
+  #phase-bar .dot {
+    position: absolute;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: #c9b896;
+    top: -2px;
+    transition: left 0.05s linear;
+  }
+
+  #phase-bar .phase-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.52rem;
+    color: #4a4840;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+
+<div id="canvas-container"></div>
+
+<div class="overlay title-block">
+  <h1>Equiradial Icosahedral<br>Dipolygonid</h1>
+  <div class="subtitle">12{5} + 12{5/2} | θ = 63°26′06″ &mdash; Verheyen 1989, §10</div>
+</div>
+
+<div class="overlay legend">
+  <div class="legend-item">
+    <div class="legend-swatch" style="background: linear-gradient(90deg, #d4a853, #e8c878);"></div>
+    <div class="legend-text">{5} Pentagon × 12</div>
+  </div>
+  <div class="legend-item">
+    <div class="legend-swatch" style="background: linear-gradient(90deg, #4a8eaa, #6ab0cc);"></div>
+    <div class="legend-text">{5/2} Pentagram × 12</div>
+  </div>
+</div>
+
+<div class="overlay info-block">
+  <div class="label">Phase μ</div>
+  <div class="value" id="mu-val">1.000</div>
+  <div class="label">Position</div>
+  <div class="value" id="pos-val">Maximum Extreme</div>
+  <div class="label">Symmetry</div>
+  <div class="value">A₅ × I</div>
+</div>
+
+<div class="overlay controls-block">
+  <div class="ctrl-row">
+    <label>Speed</label>
+    <input type="range" id="sl-speed" min="0" max="100" value="25">
+  </div>
+  <div class="ctrl-row">
+    <label>Fill</label>
+    <input type="range" id="sl-opacity" min="5" max="100" value="50">
+  </div>
+  <div class="ctrl-row">
+    <label>Phase</label>
+    <input type="range" id="sl-phase" min="0" max="1000" value="500" disabled>
+  </div>
+  <div class="ctrl-row">
+    <button class="btn on" id="b-anim">Animate</button>
+    <button class="btn" id="b-wire">Wire</button>
+    <button class="btn" id="b-axes">Axes</button>
+    <button class="btn" id="b-verts">Verts</button>
+  </div>
+</div>
+
+<div id="phase-bar">
+  <div class="track">
+    <div class="mark" style="left: 0;"></div>
+    <div class="mark" style="left: 50px;"></div>
+    <div class="mark" style="left: 100px;"></div>
+    <div class="mark" style="left: 150px;"></div>
+    <div class="mark" style="left: 200px;"></div>
+    <div class="dot" id="phase-dot"></div>
+  </div>
+  <div class="phase-label" id="phase-label">min — central — max — central — min</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ================================================================
+// EQUIRADIAL ICOSAHEDRAL DIPOLYGONID  12{5} + 12{5/2} | 63°26'06"
+//
+// From Verheyen (1989) Section 10:
+// When R_A = R_B, the half-turns SV and SW are elements of A_5,
+// so the dipolygonid is composed of 12 coplanar pairs of
+// pentagons-pentagrams. The uniform motion is analogous to the
+// regular dipolygonid 12{5}+12{5}|63°26'06" but with one pentagon
+// in each coplanar pair replaced by a pentagram.
+//
+// The full pulsation cycle:
+// Maximum → Central-1 → Minimum → Central-2 → Maximum
+// At central positions all polygon centers coincide with O.
+// The "change partners" effect occurs at each central position.
+// ================================================================
+
+const PHI = (1 + Math.sqrt(5)) / 2;
+
+// --- Scene ---
+const scene = new THREE.Scene();
+const cam = new THREE.PerspectiveCamera(42, innerWidth / innerHeight, 0.1, 100);
+cam.position.set(0, 0, 7.2);
+
+const ren = new THREE.WebGLRenderer({ antialias: true });
+ren.setSize(innerWidth, innerHeight);
+ren.setPixelRatio(Math.min(devicePixelRatio, 2));
+ren.setClearColor(0x08080c);
+document.getElementById('canvas-container').appendChild(ren.domElement);
+
+// --- Lights ---
+scene.add(new THREE.AmbientLight(0x303040, 0.5));
+const d1 = new THREE.DirectionalLight(0xffeedd, 0.65);
+d1.position.set(4, 6, 5);
+scene.add(d1);
+const d2 = new THREE.DirectionalLight(0x7799bb, 0.3);
+d2.position.set(-5, -3, 4);
+scene.add(d2);
+const d3 = new THREE.DirectionalLight(0xd4a853, 0.12);
+d3.position.set(0, -2, -5);
+scene.add(d3);
+
+// --- 6 Five-fold axes ---
+const icoVerts = [
+  [0,1,PHI],[0,-1,PHI],[0,1,-PHI],[0,-1,-PHI],
+  [1,PHI,0],[-1,PHI,0],[1,-PHI,0],[-1,-PHI,0],
+  [PHI,0,1],[-PHI,0,1],[PHI,0,-1],[-PHI,0,-1]
+];
+const axPairs = [[0,3],[1,2],[4,7],[5,6],[8,11],[9,10]];
+const axes5 = axPairs.map(([i,j]) =>
+  new THREE.Vector3(...icoVerts[i]).normalize()
+);
+
+function localFrame(ax) {
+  const up = ax.clone().normalize();
+  let a = new THREE.Vector3(1,0,0);
+  if (Math.abs(up.dot(a)) > 0.9) a.set(0,1,0);
+  const u = new THREE.Vector3().crossVectors(up, a).normalize();
+  const v = new THREE.Vector3().crossVectors(up, u).normalize();
+  return { up, u, v };
+}
+
+function polyVerts(n, R, axis, center, rot) {
+  const { u, v } = localFrame(axis);
+  const vs = [];
+  for (let i = 0; i < n; i++) {
+    const a = rot + 2*Math.PI*i/n;
+    vs.push(new THREE.Vector3(
+      center.x + R*(Math.cos(a)*u.x + Math.sin(a)*v.x),
+      center.y + R*(Math.cos(a)*u.y + Math.sin(a)*v.y),
+      center.z + R*(Math.cos(a)*u.z + Math.sin(a)*v.z)
+    ));
+  }
+  return vs;
+}
+
+function faceMesh(vs, col, op, star) {
+  const cx = vs.reduce((s,v)=>s+v.x,0)/vs.length;
+  const cy = vs.reduce((s,v)=>s+v.y,0)/vs.length;
+  const cz = vs.reduce((s,v)=>s+v.z,0)/vs.length;
+  const pos = [];
+  const n = vs.length;
+  const step = star ? 2 : 1;
+  for (let i = 0; i < n; i++) {
+    const j = (i+step)%n;
+    pos.push(cx,cy,cz, vs[i].x,vs[i].y,vs[i].z, vs[j].x,vs[j].y,vs[j].z);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.computeVertexNormals();
+  return new THREE.Mesh(g, new THREE.MeshPhongMaterial({
+    color: col, transparent: true, opacity: op,
+    side: THREE.DoubleSide, shininess: 50, depthWrite: false
+  }));
+}
+
+function edgeMesh(vs, col, star) {
+  const pts = [];
+  const step = star ? 2 : 1;
+  for (let i = 0; i < vs.length; i++)
+    pts.push(vs[i], vs[(i+step)%vs.length]);
+  return new THREE.LineSegments(
+    new THREE.BufferGeometry().setFromPoints(pts),
+    new THREE.LineBasicMaterial({ color: col, transparent: true, opacity: 0.55 })
+  );
+}
+
+function vertDots(vs, col) {
+  const g = new THREE.Group();
+  const sg = new THREE.SphereGeometry(0.022, 6, 6);
+  const m = new THREE.MeshBasicMaterial({ color: col });
+  for (const v of vs) { const s = new THREE.Mesh(sg, m); s.position.copy(v); g.add(s); }
+  return g;
+}
+
+// --- Main group ---
+const root = new THREE.Group();
+scene.add(root);
+
+const axisLines = [];
+for (const ax of axes5) {
+  const g = new THREE.BufferGeometry().setFromPoints([
+    ax.clone().multiplyScalar(-3), ax.clone().multiplyScalar(3)
+  ]);
+  const l = new THREE.LineSegments(g, new THREE.LineBasicMaterial({
+    color: 0x282828, transparent: true, opacity: 0.2
+  }));
+  l.visible = false;
+  root.add(l);
+  axisLines.push(l);
+}
+
+// --- State ---
+let anim = true, wire = false, verts = false;
+let spd = 0.25, opacity = 0.5;
+let t = 0, manMu = 0;
+let dyn = [];
+
+function clearDyn() {
+  for (const o of dyn) {
+    root.remove(o);
+    if (o.geometry) o.geometry.dispose();
+    if (o.material) { if (o.material.dispose) o.material.dispose(); }
+    if (o.children) o.children.forEach(c => { c.geometry && c.geometry.dispose(); c.material && c.material.dispose(); });
+  }
+  dyn = [];
+}
+
+function build(mu) {
+  clearDyn();
+
+  // mu ∈ [-1, 1]: extremes at ±1, central at 0
+  // Translation along axis: maximum at extremes, zero at central
+  // Rotation: accumulates from extreme toward central
+
+  const R = 0.88;
+  const maxD = 1.1;
+  const absM = Math.abs(mu);
+  const dist = maxD * absM;
+
+  // Rotation per polygon: ±(1-|mu|) * π/5
+  // Pentagon and pentagram counter-rotate to maintain the coplanar pair structure
+  const rotAmt = (1 - absM) * Math.PI / 5;
+  const sgn = mu >= 0 ? 1 : -1;
+
+  const PC = 0xd4a853;
+  const SC = 0x4a8eaa;
+
+  for (let i = 0; i < 6; i++) {
+    const ax = axes5[i];
+    const cU = ax.clone().multiplyScalar(dist);
+    const cD = ax.clone().multiplyScalar(-dist);
+
+    // Pentagon rotations
+    const prU = sgn * rotAmt;
+    const prD = sgn * rotAmt + Math.PI;
+    // Pentagram counter-rotates
+    const srU = -sgn * rotAmt + Math.PI/5; // offset by π/5 so it interleaves with pentagon
+    const srD = -sgn * rotAmt + Math.PI/5 + Math.PI;
+
+    const pvU = polyVerts(5, R, ax, cU, prU);
+    const pvD = polyVerts(5, R, ax, cD, prD);
+    const svU = polyVerts(5, R, ax, cU, srU);
+    const svD = polyVerts(5, R, ax, cD, srD);
+
+    // Faces
+    [faceMesh(pvU, PC, opacity, false),
+     faceMesh(pvD, PC, opacity, false),
+     faceMesh(svU, SC, opacity*0.8, true),
+     faceMesh(svD, SC, opacity*0.8, true)
+    ].forEach(m => { root.add(m); dyn.push(m); });
+
+    // Wire
+    if (wire) {
+      [edgeMesh(pvU, 0xf0d890, false),
+       edgeMesh(pvD, 0xf0d890, false),
+       edgeMesh(svU, 0x80c8e8, true),
+       edgeMesh(svD, 0x80c8e8, true)
+      ].forEach(m => { root.add(m); dyn.push(m); });
+    }
+
+    // Verts
+    if (verts) {
+      [vertDots(pvU, 0xffe0a0),
+       vertDots(pvD, 0xffe0a0),
+       vertDots(svU, 0xa0ddf0),
+       vertDots(svD, 0xa0ddf0)
+      ].forEach(m => { root.add(m); dyn.push(m); });
+    }
+  }
+}
+
+// --- Orbit ---
+let drag = false, px = 0, py = 0;
+let vx = 0, vy = 0, ex = 0.3, ey = 0;
+
+ren.domElement.addEventListener('pointerdown', e => { drag = true; px = e.clientX; py = e.clientY; });
+addEventListener('pointermove', e => {
+  if (!drag) return;
+  vx += (e.clientY - py) * 0.004;
+  vy += (e.clientX - px) * 0.004;
+  px = e.clientX; py = e.clientY;
+});
+addEventListener('pointerup', () => drag = false);
+ren.domElement.addEventListener('wheel', e => {
+  cam.position.z = Math.max(3.5, Math.min(14, cam.position.z + e.deltaY * 0.004));
+}, { passive: true });
+
+// --- UI ---
+const slS = document.getElementById('sl-speed');
+const slO = document.getElementById('sl-opacity');
+const slP = document.getElementById('sl-phase');
+const bA = document.getElementById('b-anim');
+const bW = document.getElementById('b-wire');
+const bX = document.getElementById('b-axes');
+const bV = document.getElementById('b-verts');
+
+slS.oninput = e => spd = e.target.value / 100;
+slO.oninput = e => opacity = e.target.value / 100;
+slP.oninput = e => manMu = (e.target.value / 1000) * 2 - 1;
+bA.onclick = () => { anim = !anim; bA.classList.toggle('on', anim); slP.disabled = anim; };
+bW.onclick = () => { wire = !wire; bW.classList.toggle('on', wire); };
+bX.onclick = () => { const v = !axisLines[0].visible; axisLines.forEach(l => l.visible = v); bX.classList.toggle('on', v); };
+bV.onclick = () => { verts = !verts; bV.classList.toggle('on', verts); };
+
+const muEl = document.getElementById('mu-val');
+const posEl = document.getElementById('pos-val');
+const dotEl = document.getElementById('phase-dot');
+
+function updateUI(mu) {
+  muEl.textContent = mu.toFixed(3);
+  const a = Math.abs(mu);
+  let s;
+  if (a > 0.97) s = mu > 0 ? 'Maximum Extreme' : 'Minimum Extreme';
+  else if (a < 0.03) s = 'Central — Coplanar Collapse';
+  else if (a < 0.15) s = 'Near Central';
+  else if (a > 0.85) s = mu > 0 ? 'Approaching Maximum' : 'Approaching Minimum';
+  else s = mu > 0 ? 'Upper Half' : 'Lower Half';
+  posEl.textContent = s;
+  dotEl.style.left = ((mu + 1) / 2 * 194) + 'px';
+}
+
+// --- Loop ---
+function loop() {
+  requestAnimationFrame(loop);
+
+  if (!drag) { vx *= 0.94; vy *= 0.94; vy += 0.0004; }
+  ex += vx; ey += vy;
+  root.rotation.x = ex;
+  root.rotation.y = ey;
+
+  let mu;
+  if (anim) {
+    t += 0.006 * spd;
+    mu = Math.cos(t * Math.PI);
+  } else {
+    mu = manMu;
+  }
+
+  build(mu);
+  updateUI(mu);
+  ren.render(scene, cam);
+}
+
+addEventListener('resize', () => {
+  cam.aspect = innerWidth / innerHeight;
+  cam.updateProjectionMatrix();
+  ren.setSize(innerWidth, innerHeight);
+});
+
+loop();
+</script>
+</body>
+</html>
