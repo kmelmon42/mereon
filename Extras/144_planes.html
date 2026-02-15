@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>144 Polyhedron — 26 Planes (9 FCC Directions)</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: system-ui, sans-serif; background: #0a0a12; color: #eee; overflow: hidden; }
+        #controls {
+            position: fixed; top: 15px; left: 15px;
+            background: rgba(12, 12, 20, 0.95); padding: 15px; border-radius: 8px;
+            z-index: 100; width: 310px; max-height: calc(100vh - 30px); overflow-y: auto;
+        }
+        h1 { font-size: 0.95rem; color: #7af; margin-bottom: 6px; }
+        .subtitle { font-size: 0.72rem; color: #888; margin-bottom: 10px; line-height: 1.4; }
+        h2 { font-size: 0.8rem; color: #aaa; margin: 10px 0 6px 0; border-top: 1px solid #333; padding-top: 8px; }
+        .control-row { margin: 4px 0; font-size: 0.78rem; }
+        .control-row label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+        .color-swatch { width: 12px; height: 12px; border-radius: 2px; border: 1px solid #555; display: inline-block; }
+        button {
+            background: #335; color: #aef; border: 1px solid #446; padding: 4px 8px;
+            border-radius: 4px; cursor: pointer; font-size: 0.7rem; margin: 2px 2px 2px 0;
+        }
+        button:hover { background: #446; }
+        button.active { background: #558; border-color: #77a; }
+        input[type="range"] { width: 100%; }
+        .stats { font-family: monospace; font-size: 0.65rem; color: #888; margin-top: 8px; line-height: 1.5; padding: 6px; background: rgba(0,0,0,0.3); border-radius: 4px; }
+        .plane-info { font-size: 0.68rem; color: #7af; margin: 2px 0 2px 20px; }
+        #canvas-container { width: 100vw; height: 100vh; }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <h1>144 Polyhedron — 26 Planes</h1>
+        <div class="subtitle">
+            144 faces lie on exactly <strong>26 planes</strong> in <strong>13 directions</strong><br>
+            = the 9 FCC lattice plane families: {100}, {111}, {110}
+        </div>
+
+        <h2>Display</h2>
+        <div class="control-row">
+            <label><input type="checkbox" id="showFaces" checked> 144 Faces</label>
+        </div>
+        <div class="control-row">
+            <label><input type="checkbox" id="showEdges" checked> Edges</label>
+        </div>
+        <div class="control-row">
+            <label><input type="checkbox" id="autoRotate"> Auto Rotate</label>
+        </div>
+        <div class="control-row">
+            <label>Plane Opacity: <span id="opacVal" style="color:#7af">0.25</span></label>
+            <input type="range" id="planeOpacity" min="0.05" max="0.6" value="0.25" step="0.01">
+        </div>
+        <div class="control-row">
+            <label>Plane Size: <span id="sizeVal" style="color:#7af">1.5</span></label>
+            <input type="range" id="planeSize" min="0.8" max="2.5" value="1.5" step="0.05">
+        </div>
+
+        <h2>{100} Cubic — 3 dirs × 2 = 6 planes (8 faces each)</h2>
+        <div class="control-row">
+            <label><input type="checkbox" class="famCheck" data-family="0" checked>
+            <span class="color-swatch" style="background:#ff4444"></span> ±X (1,0,0) — 16 faces</label>
+        </div>
+        <div class="control-row">
+            <label><input type="checkbox" class="famCheck" data-family="1" checked>
+            <span class="color-swatch" style="background:#44ff44"></span> ±Y (0,1,0) — 16 faces</label>
+        </div>
+        <div class="control-row">
+            <label><input type="checkbox" class="famCheck" data-family="2" checked>
+            <span class="color-swatch" style="background:#4488ff"></span> ±Z (0,0,1) — 16 faces</label>
+        </div>
+
+        <h2>{111} Octahedral — 4 dirs × 2 = 8 planes (6 faces each)</h2>
+        <div class="control-row">
+            <label><input type="checkbox" class="famCheck" data-family="3" checked>
+            <span class="color-swatch" style="background:#ff8800"></span> (1,1,1) — 12 faces</label>
+        </div>
+        <div class="control-row">
+            <label><input type="checkbox" class="famCheck" data-family="4" checked>
+            <span class="color-swatch" style="background:#ffcc00"></span> (1,1,−1) — 12 faces</label>
+        </div>
+        <div class="control-row">
+            <label><input type="checkbox" class="famCheck" data-family="5" checked>
+            <span class="color-swatch" style="background:#88ff00"></span> (1,−1,1) — 12 faces</label>
+        </div>
+        <div class="control-row">
+            <label><input type="checkbox" class="famCheck" data-family="6" checked>
+            <span class="color-swatch" style="background:#00ff88"></span> (−1,1,1) — 12 faces</label>
+        </div>
+
+        <h2>{110} Rhombic Dodecahedral — 6 dirs × 2 = 12 planes (4 faces each)</h2>
+        <div class="control-row">
+            <label><input type="checkbox" class="famCheck" data-family="7" checked>
+            <span class="color-swatch" style="background:#ff44ff"></span> (1,1,0) — 8 faces</label>
+        </div>
+        <div class="control-row">
+            <label><input type="checkbox" class="famCheck" data-family="8" checked>
+            <span class="color-swatch" style="background:#aa44ff"></span> (1,−1,0) — 8 faces</label>
+        </div>
+        <div class="control-row">
+            <label><input type="checkbox" class="famCheck" data-family="9" checked>
+            <span class="color-swatch" style="background:#44ffff"></span> (0,1,1) — 8 faces</label>
+        </div>
+        <div class="control-row">
+            <label><input type="checkbox" class="famCheck" data-family="10" checked>
+            <span class="color-swatch" style="background:#44aaff"></span> (0,1,−1) — 8 faces</label>
+        </div>
+        <div class="control-row">
+            <label><input type="checkbox" class="famCheck" data-family="11" checked>
+            <span class="color-swatch" style="background:#ff88aa"></span> (1,0,1) — 8 faces</label>
+        </div>
+        <div class="control-row">
+            <label><input type="checkbox" class="famCheck" data-family="12" checked>
+            <span class="color-swatch" style="background:#aaaaff"></span> (1,0,−1) — 8 faces</label>
+        </div>
+
+        <h2>Quick</h2>
+        <button id="showAll">All Planes</button>
+        <button id="hideAll">No Planes</button>
+        <button id="show100">Only {100}</button>
+        <button id="show111">Only {111}</button>
+        <button id="show110">Only {110}</button>
+
+        <div class="stats">
+            <strong>Summary:</strong><br>
+            48 faces on 6 cubic {100} planes<br>
+            48 faces on 8 octahedral {111} planes<br>
+            48 faces on 12 rhombic dodecahedral {110} planes<br>
+            <strong>144 = 48 + 48 + 48</strong>
+        </div>
+    </div>
+    <div id="canvas-container"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        const SCALE = 4;
+
+        // =================== 144 CONSTRUCTION (same as static144.html) ===================
+        function isFCC(x,y,z) { return (x+y+z)%2===0; }
+        function toUnit(v) { return [v[0]/SCALE, v[1]/SCALE, v[2]/SCALE]; }
+        function vec3(a) { return new THREE.Vector3(a[0],a[1],a[2]); }
+        function vadd(a,b) { return [a[0]+b[0],a[1]+b[1],a[2]+b[2]]; }
+        function vsub(a,b) { return [a[0]-b[0],a[1]-b[1],a[2]-b[2]]; }
+        function vmul(v,s) { return [v[0]*s,v[1]*s,v[2]*s]; }
+        function vdot(a,b) { return a[0]*b[0]+a[1]*b[1]+a[2]*b[2]; }
+        function vlen(v) { return Math.sqrt(vdot(v,v)); }
+        function vnorm(v) { const l=vlen(v); return l?vmul(v,1/l):[0,0,0]; }
+        function vavg(...vs) {
+            const n=vs.length;
+            return [vs.reduce((s,v)=>s+v[0],0)/n, vs.reduce((s,v)=>s+v[1],0)/n, vs.reduce((s,v)=>s+v[2],0)/n];
+        }
+        function nearestFCC(pt) {
+            let best=null, bestD=Infinity;
+            for(let dx=-2;dx<=2;dx++) for(let dy=-2;dy<=2;dy++) for(let dz=-2;dz<=2;dz++) {
+                const c=[Math.round(pt[0])+dx, Math.round(pt[1])+dy, Math.round(pt[2])+dz];
+                if(!isFCC(c[0],c[1],c[2])) continue;
+                const d=vlen(vsub(c,pt));
+                if(d<bestD){bestD=d;best=c;}
+            }
+            return best;
+        }
+
+        const OUTER=[[4,0,0],[-4,0,0],[0,4,0],[0,-4,0],[0,0,4],[0,0,-4]];
+        const FACES_OCT=[[0,2,4],[0,4,3],[0,3,5],[0,5,2],[1,4,2],[1,3,4],[1,5,3],[1,2,5]];
+        const EDGES_OCT=[[0,2],[0,3],[0,4],[0,5],[1,2],[1,3],[1,4],[1,5],[2,4],[4,3],[3,5],[5,2]];
+
+        function findFaceCenter(A,B,C,normal) {
+            const cands=[[2,2,2],[-2,-2,-2],[2,2,-2],[2,-2,2],[-2,2,2],[2,-2,-2],[-2,2,-2],[-2,-2,2]];
+            let best=null, bestA=-Infinity;
+            for(const c of cands) { const cn=vnorm(c); const a=vdot(cn,normal); if(a>bestA){bestA=a;best=c;} }
+            if(best && bestA>0.9) return best;
+            return nearestFCC(vavg(A,B,C));
+        }
+
+        function build144() {
+            const vertices=[], triangles=[], vertexMap={};
+            function addV(v) {
+                const vr=[Math.round(v[0]),Math.round(v[1]),Math.round(v[2])];
+                const key=vr.join(',');
+                if(!(key in vertexMap)){vertexMap[key]=vertices.length;vertices.push(vr);}
+                return vertexMap[key];
+            }
+            for(const face of FACES_OCT) {
+                const A=OUTER[face[0]], B=OUTER[face[1]], C=OUTER[face[2]];
+                const fn=vnorm(vavg(A,B,C));
+                const mAB=vavg(A,B), mBC=vavg(B,C), mCA=vavg(C,A);
+                const O=findFaceCenter(A,B,C,fn);
+                const L1=[[A,mAB,O],[mAB,B,O],[B,mBC,O],[mBC,C,O],[C,mCA,O],[mCA,A,O]];
+                for(const[P,Q,R] of L1) {
+                    const centFlat=vavg(P,Q,R);
+                    const centPushed=vadd(centFlat,vmul(fn,0.5));
+                    const cent=nearestFCC(centPushed);
+                    const pI=addV(P), qI=addV(Q), rI=addV(R), cI=addV(cent);
+                    triangles.push([pI,qI,cI]);
+                    triangles.push([qI,rI,cI]);
+                    triangles.push([rI,pI,cI]);
+                }
+            }
+            return {vertices, triangles};
+        }
+
+        const {vertices, triangles} = build144();
+        const verticesUnit = vertices.map(toUnit);
+
+        // =================== COMPUTE PLANES ===================
+        const ANGLE_TOL = 0.001, DIST_TOL = 0.0001;
+
+        function computeFaceNormal(tri) {
+            const v0=verticesUnit[tri[0]], v1=verticesUnit[tri[1]], v2=verticesUnit[tri[2]];
+            const e1=[v1[0]-v0[0],v1[1]-v0[1],v1[2]-v0[2]];
+            const e2=[v2[0]-v0[0],v2[1]-v0[1],v2[2]-v0[2]];
+            let n=[e1[1]*e2[2]-e1[2]*e2[1], e1[2]*e2[0]-e1[0]*e2[2], e1[0]*e2[1]-e1[1]*e2[0]];
+            const nl=vlen(n);
+            if(nl<1e-12) return {n:[0,0,0],d:0};
+            n=vmul(n,1/nl);
+            const cent=vavg(v0,v1,v2);
+            if(vdot(n,cent)<0) n=vmul(n,-1);
+            return {n, d:vdot(n,v0)};
+        }
+
+        // Group into 26 planes
+        const planeGroups = []; // {n, d, faces:[]}
+        for(let i=0; i<triangles.length; i++) {
+            const {n,d} = computeFaceNormal(triangles[i]);
+            if(vlen(n)<0.5) continue;
+            let found=false;
+            for(const g of planeGroups) {
+                const dot=vdot(n,g.n);
+                if(Math.abs(dot-1)<ANGLE_TOL && Math.abs(d-g.d)<DIST_TOL) { g.faces.push(i); found=true; break; }
+                if(Math.abs(dot+1)<ANGLE_TOL && Math.abs(d+g.d)<DIST_TOL) { g.faces.push(i); found=true; break; }
+            }
+            if(!found) planeGroups.push({n:[...n], d, faces:[i]});
+        }
+
+        // Group into 13 normal families
+        const normalFamilies = [];
+        for(const pg of planeGroups) {
+            let found=false;
+            for(const fam of normalFamilies) {
+                if(Math.abs(Math.abs(vdot(pg.n, fam.planes[0].n))-1)<ANGLE_TOL) {
+                    fam.planes.push(pg); found=true; break;
+                }
+            }
+            if(!found) normalFamilies.push({planes:[pg]});
+        }
+        // Sort families: {100} first (3), then {111} (4), then {110} (6)
+        normalFamilies.sort((a,b) => {
+            const na=a.planes[0].n, nb=b.planes[0].n;
+            const za=na.filter(x=>Math.abs(x)<0.01).length, zb=nb.filter(x=>Math.abs(x)<0.01).length;
+            return zb-za; // more zeros = simpler direction = first
+        });
+
+        // Family colors
+        const FAMILY_COLORS = [
+            0xff4444, 0x44ff44, 0x4488ff,           // {100}: red, green, blue
+            0xff8800, 0xffcc00, 0x88ff00, 0x00ff88,  // {111}: orange, gold, lime, teal
+            0xff44ff, 0xaa44ff, 0x44ffff, 0x44aaff, 0xff88aa, 0xaaaaff  // {110}: magenta, purple, cyan, ...
+        ];
+
+        // =================== THREE.JS SETUP ===================
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0a0a12);
+        const camera = new THREE.PerspectiveCamera(50, window.innerWidth/window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 0, 4);
+        const renderer = new THREE.WebGLRenderer({antialias:true});
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        container.appendChild(renderer.domElement);
+
+        scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+        const light = new THREE.DirectionalLight(0xffffff, 0.7);
+        light.position.set(5,5,5);
+        scene.add(light);
+        const light2 = new THREE.DirectionalLight(0xffffff, 0.3);
+        light2.position.set(-3,-2,3);
+        scene.add(light2);
+
+        const mainGroup = new THREE.Group();
+        scene.add(mainGroup);
+
+        // =================== BUILD SCENE ===================
+        let faceMeshGroup, edgeGroup, planeMeshGroups;
+        let planeOpacity = 0.25;
+        let planeSize = 1.5;
+        let familyVisible = new Array(13).fill(true);
+
+        function buildScene() {
+            while(mainGroup.children.length) mainGroup.remove(mainGroup.children[0]);
+
+            const showFaces = document.getElementById('showFaces').checked;
+            const showEdges = document.getElementById('showEdges').checked;
+
+            // 144 faces
+            if(showFaces) {
+                const geom = new THREE.BufferGeometry();
+                const pos = [];
+                for(const tri of triangles) {
+                    for(const i of tri) pos.push(...verticesUnit[i]);
+                }
+                geom.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+                geom.computeVertexNormals();
+                const mat = new THREE.MeshStandardMaterial({
+                    color: 0x4488ff, side: THREE.DoubleSide,
+                    transparent: true, opacity: 0.7,
+                    polygonOffset: true, polygonOffsetFactor: 1, polygonOffsetUnits: 1
+                });
+                mainGroup.add(new THREE.Mesh(geom, mat));
+            }
+
+            // Edges
+            if(showEdges) {
+                const edgeMat = new THREE.LineBasicMaterial({color: 0x000000});
+                for(const tri of triangles) {
+                    const pts = [vec3(verticesUnit[tri[0]]), vec3(verticesUnit[tri[1]]),
+                                 vec3(verticesUnit[tri[2]]), vec3(verticesUnit[tri[0]])];
+                    mainGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), edgeMat));
+                }
+            }
+
+            // Outer octahedron wireframe
+            const octMat = new THREE.LineBasicMaterial({color: 0xffaa00, transparent:true, opacity:0.3});
+            for(const [i,j] of EDGES_OCT) {
+                const pts = [vec3(toUnit(OUTER[i])), vec3(toUnit(OUTER[j]))];
+                mainGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), octMat));
+            }
+
+            // Plane discs for each family
+            planeMeshGroups = [];
+            for(let fi=0; fi<normalFamilies.length; fi++) {
+                const fam = normalFamilies[fi];
+                const color = FAMILY_COLORS[fi];
+                const famGroup = new THREE.Group();
+                famGroup.visible = familyVisible[fi];
+
+                for(const pg of fam.planes) {
+                    const n = new THREE.Vector3(...pg.n);
+                    const d = pg.d;
+
+                    // Create a circular disc in the plane
+                    const discGeom = new THREE.CircleGeometry(planeSize, 48);
+                    const discMat = new THREE.MeshStandardMaterial({
+                        color: color, side: THREE.DoubleSide,
+                        transparent: true, opacity: planeOpacity,
+                        depthWrite: false
+                    });
+                    const disc = new THREE.Mesh(discGeom, discMat);
+
+                    // Position at n*d and orient to face along n
+                    disc.position.copy(n.clone().multiplyScalar(d));
+                    disc.lookAt(n.clone().multiplyScalar(d + 1));
+
+                    famGroup.add(disc);
+
+                    // Also highlight the coplanar faces with a matching colored overlay
+                    const highlightPos = [];
+                    for(const fi2 of pg.faces) {
+                        const tri = triangles[fi2];
+                        for(const vi of tri) highlightPos.push(...verticesUnit[vi]);
+                    }
+                    const hlGeom = new THREE.BufferGeometry();
+                    hlGeom.setAttribute('position', new THREE.Float32BufferAttribute(highlightPos, 3));
+                    hlGeom.computeVertexNormals();
+                    const hlMat = new THREE.MeshStandardMaterial({
+                        color: color, side: THREE.DoubleSide,
+                        transparent: true, opacity: 0.6,
+                        polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1
+                    });
+                    famGroup.add(new THREE.Mesh(hlGeom, hlMat));
+                }
+
+                mainGroup.add(famGroup);
+                planeMeshGroups.push(famGroup);
+            }
+        }
+
+        buildScene();
+
+        // =================== CONTROLS ===================
+        document.getElementById('showFaces').addEventListener('change', buildScene);
+        document.getElementById('showEdges').addEventListener('change', buildScene);
+
+        document.getElementById('planeOpacity').addEventListener('input', (e) => {
+            planeOpacity = parseFloat(e.target.value);
+            document.getElementById('opacVal').textContent = planeOpacity.toFixed(2);
+            buildScene();
+        });
+
+        document.getElementById('planeSize').addEventListener('input', (e) => {
+            planeSize = parseFloat(e.target.value);
+            document.getElementById('sizeVal').textContent = planeSize.toFixed(2);
+            buildScene();
+        });
+
+        document.querySelectorAll('.famCheck').forEach(el => {
+            el.addEventListener('change', (e) => {
+                const fi = parseInt(e.target.dataset.family);
+                familyVisible[fi] = e.target.checked;
+                if(planeMeshGroups[fi]) planeMeshGroups[fi].visible = e.target.checked;
+            });
+        });
+
+        function setFamilyChecks(mask) {
+            document.querySelectorAll('.famCheck').forEach(el => {
+                const fi = parseInt(el.dataset.family);
+                el.checked = mask[fi];
+                familyVisible[fi] = mask[fi];
+                if(planeMeshGroups[fi]) planeMeshGroups[fi].visible = mask[fi];
+            });
+        }
+
+        document.getElementById('showAll').addEventListener('click', () => setFamilyChecks(new Array(13).fill(true)));
+        document.getElementById('hideAll').addEventListener('click', () => setFamilyChecks(new Array(13).fill(false)));
+        document.getElementById('show100').addEventListener('click', () => {
+            const m = new Array(13).fill(false); m[0]=m[1]=m[2]=true; setFamilyChecks(m);
+        });
+        document.getElementById('show111').addEventListener('click', () => {
+            const m = new Array(13).fill(false); m[3]=m[4]=m[5]=m[6]=true; setFamilyChecks(m);
+        });
+        document.getElementById('show110').addEventListener('click', () => {
+            const m = new Array(13).fill(false); for(let i=7;i<13;i++) m[i]=true; setFamilyChecks(m);
+        });
+
+        // =================== INTERACTION ===================
+        let drag=false, pm={x:0,y:0};
+        container.addEventListener('mousedown', e=>{drag=true; pm={x:e.clientX,y:e.clientY};});
+        container.addEventListener('mousemove', e=>{
+            if(drag){
+                mainGroup.rotation.y += (e.clientX-pm.x)*0.01;
+                mainGroup.rotation.x += (e.clientY-pm.y)*0.01;
+                pm={x:e.clientX,y:e.clientY};
+            }
+        });
+        container.addEventListener('mouseup', ()=>drag=false);
+        container.addEventListener('mouseleave', ()=>drag=false);
+        container.addEventListener('wheel', e=>{
+            e.preventDefault();
+            camera.position.multiplyScalar(1+e.deltaY*0.001);
+        }, {passive:false});
+        window.addEventListener('resize', ()=>{
+            camera.aspect=window.innerWidth/window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth,window.innerHeight);
+        });
+
+        (function animate(){
+            requestAnimationFrame(animate);
+            if(document.getElementById('autoRotate').checked && !drag) mainGroup.rotation.y+=0.005;
+            renderer.render(scene,camera);
+        })();
+    </script>
+</body>
+</html>
