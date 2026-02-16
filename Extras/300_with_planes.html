@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>6 Icosahedra Compound — 80 Planes</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: system-ui, sans-serif; background: #0a0a12; color: #eee; overflow: hidden; }
+        #controls {
+            position: fixed; top: 15px; left: 15px;
+            background: rgba(12, 12, 20, 0.95); padding: 15px; border-radius: 8px;
+            z-index: 100; width: 310px; max-height: calc(100vh - 30px); overflow-y: auto;
+        }
+        h1 { font-size: 0.95rem; color: #7af; margin-bottom: 6px; }
+        .subtitle { font-size: 0.72rem; color: #888; margin-bottom: 10px; line-height: 1.4; }
+        h2 { font-size: 0.8rem; color: #aaa; margin: 10px 0 6px 0; border-top: 1px solid #333; padding-top: 8px; }
+        .control-row { margin: 4px 0; font-size: 0.78rem; }
+        .control-row label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+        .color-swatch { width: 12px; height: 12px; border-radius: 2px; border: 1px solid #555; display: inline-block; }
+        button {
+            background: #335; color: #aef; border: 1px solid #446; padding: 4px 8px;
+            border-radius: 4px; cursor: pointer; font-size: 0.7rem; margin: 2px 2px 2px 0;
+        }
+        button:hover { background: #446; }
+        input[type="range"] { width: 100%; }
+        .stats { font-family: monospace; font-size: 0.65rem; color: #888; margin-top: 8px; line-height: 1.5; padding: 6px; background: rgba(0,0,0,0.3); border-radius: 4px; }
+        #canvas-container { width: 100vw; height: 100vh; }
+    </style>
+</head>
+<body>
+    <div id="controls">
+        <h1>6 Icosahedra — 80 Planes</h1>
+        <div class="subtitle">
+            120 faces on <strong>80 planes</strong> in <strong>40 normal directions</strong><br>
+            20 shared planes (3 faces each) + 60 unique planes (1 face each)
+        </div>
+
+        <h2>Display</h2>
+        <div class="control-row">
+            <label><input type="checkbox" id="showFaces" checked> Compound Faces</label>
+        </div>
+        <div class="control-row">
+            <label><input type="checkbox" id="showEdges" checked> Edges</label>
+        </div>
+        <div class="control-row">
+            <label><input type="checkbox" id="autoRotate" checked> Auto Rotate</label>
+        </div>
+        <div class="control-row">
+            <label>Plane Opacity: <span id="opacVal" style="color:#7af">0.15</span></label>
+            <input type="range" id="planeOpacity" min="0.05" max="0.6" value="0.15" step="0.01">
+        </div>
+        <div class="control-row">
+            <label>Plane Size: <span id="sizeVal" style="color:#7af">1.0</span></label>
+            <input type="range" id="planeSize" min="0.5" max="2.5" value="1.0" step="0.05">
+        </div>
+
+        <h2>Icosahedra</h2>
+        <div class="control-row">
+            <label style="color:#ff4444"><input type="checkbox" class="icoCheck" data-idx="0" checked>
+            <span class="color-swatch" style="background:#ff4444"></span> Icosa 1 (red)</label>
+        </div>
+        <div class="control-row">
+            <label style="color:#44ff44"><input type="checkbox" class="icoCheck" data-idx="1" checked>
+            <span class="color-swatch" style="background:#44ff44"></span> Icosa 2 (green)</label>
+        </div>
+        <div class="control-row">
+            <label style="color:#4488ff"><input type="checkbox" class="icoCheck" data-idx="2" checked>
+            <span class="color-swatch" style="background:#4488ff"></span> Icosa 3 (blue)</label>
+        </div>
+        <div class="control-row">
+            <label style="color:#ffff44"><input type="checkbox" class="icoCheck" data-idx="3" checked>
+            <span class="color-swatch" style="background:#ffff44"></span> Icosa 4 (yellow)</label>
+        </div>
+        <div class="control-row">
+            <label style="color:#ff44ff"><input type="checkbox" class="icoCheck" data-idx="4" checked>
+            <span class="color-swatch" style="background:#ff44ff"></span> Icosa 5 (magenta)</label>
+        </div>
+        <div class="control-row">
+            <label style="color:#44ffff"><input type="checkbox" class="icoCheck" data-idx="5" checked>
+            <span class="color-swatch" style="background:#44ffff"></span> Icosa 6 (cyan)</label>
+        </div>
+
+        <h2>Planes</h2>
+        <div class="control-row">
+            <label><input type="checkbox" id="showShared" checked>
+            <span class="color-swatch" style="background:#ffaa00"></span> 20 shared planes (3 faces each) — 60 faces</label>
+        </div>
+        <div class="control-row">
+            <label><input type="checkbox" id="showUnique" checked>
+            <span class="color-swatch" style="background:#aa44ff"></span> 60 unique planes (1 face each) — 60 faces</label>
+        </div>
+
+        <h2>Quick</h2>
+        <button id="allPlanes">All Planes</button>
+        <button id="noPlanes">No Planes</button>
+        <button id="sharedOnly">Shared Only</button>
+        <button id="uniqueOnly">Unique Only</button>
+
+        <div class="stats">
+            <strong>Summary:</strong><br>
+            6 icosahedra × 20 faces = 120 total<br>
+            20 planes × 3 coplanar faces = 60<br>
+            60 planes × 1 face = 60<br>
+            <strong>120 = 60 + 60 on 80 planes</strong><br>
+            40 normal directions (10 shared + 30 unique)
+        </div>
+    </div>
+    <div id="canvas-container"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        const PHI = (1 + Math.sqrt(5)) / 2;
+
+        // =================== COMPOUND CONSTRUCTION ===================
+        // Three.js IcosahedronGeometry vertices (normalized to unit sphere)
+        const rawV = [
+            [-1,PHI,0],[1,PHI,0],[-1,-PHI,0],[1,-PHI,0],
+            [0,-1,PHI],[0,1,PHI],[0,-1,-PHI],[0,1,-PHI],
+            [PHI,0,-1],[PHI,0,1],[-PHI,0,-1],[-PHI,0,1]
+        ];
+        const icoVerts = rawV.map(v => {
+            const l = Math.sqrt(v[0]*v[0]+v[1]*v[1]+v[2]*v[2]);
+            return [v[0]/l, v[1]/l, v[2]/l];
+        });
+        const icoFaces = [
+            [0,11,5],[0,5,1],[0,1,7],[0,7,10],[0,10,11],
+            [1,5,9],[5,11,4],[11,10,2],[10,7,6],[7,1,8],
+            [3,9,4],[3,4,2],[3,2,6],[3,6,8],[3,8,9],
+            [4,9,5],[2,4,11],[6,2,10],[8,6,7],[9,8,1]
+        ];
+
+        const BISECTOR_AXES = [
+            [-0.9511,0,-0.3090], [0,0,-1], [0.9511,0,-0.3090],
+            [0.5878,0,0.8090], [-0.5878,0,0.8090]
+        ];
+        const ICOSA_BISECTOR_IDX = [-1,0,1,2,3,4];
+        const allRotation = Math.atan(0.5);
+        const alignAngle = Math.atan2(1, PHI);
+
+        const COLORS = [0xff4444, 0x44ff44, 0x4488ff, 0xffff44, 0xff44ff, 0x44ffff];
+
+        // Quaternion math
+        function qMul(a, b) {
+            return [
+                a[3]*b[0]+a[0]*b[3]+a[1]*b[2]-a[2]*b[1],
+                a[3]*b[1]-a[0]*b[2]+a[1]*b[3]+a[2]*b[0],
+                a[3]*b[2]+a[0]*b[1]-a[1]*b[0]+a[2]*b[3],
+                a[3]*b[3]-a[0]*b[0]-a[1]*b[1]-a[2]*b[2]
+            ];
+        }
+        function qFromAxisAngle(ax, ang) {
+            const l = Math.sqrt(ax[0]*ax[0]+ax[1]*ax[1]+ax[2]*ax[2]);
+            const s = Math.sin(ang/2), c = Math.cos(ang/2);
+            return [ax[0]/l*s, ax[1]/l*s, ax[2]/l*s, c];
+        }
+        function qRotate(q, v) {
+            const qc = [-q[0],-q[1],-q[2],q[3]];
+            const vq = [v[0],v[1],v[2],0];
+            const t = qMul(q, vq);
+            const r = qMul(t, qc);
+            return [r[0],r[1],r[2]];
+        }
+
+        // Build all 6 icosahedra
+        const allVerts = [];
+        const allFaces = [];
+        const faceIcosaIdx = []; // which icosahedron each face belongs to
+
+        for (let i = 0; i < 6; i++) {
+            const qAlign = qFromAxisAngle([0,0,1], alignAngle);
+            const qFlip = i > 0 ? qFromAxisAngle([0,1,0], Math.PI) : [0,0,0,1];
+            let qBisect = [0,0,0,1];
+            if (i > 0) {
+                const bax = BISECTOR_AXES[ICOSA_BISECTOR_IDX[i]];
+                qBisect = qFromAxisAngle(bax, allRotation);
+            }
+            // total = bisect * flip * align
+            const qFA = qMul(qFlip, qAlign);
+            const qTotal = qMul(qBisect, qFA);
+
+            const offset = allVerts.length;
+            for (const v of icoVerts) {
+                allVerts.push(qRotate(qTotal, v));
+            }
+            for (const f of icoFaces) {
+                allFaces.push([f[0]+offset, f[1]+offset, f[2]+offset]);
+                faceIcosaIdx.push(i);
+            }
+        }
+
+        // =================== COMPUTE PLANES ===================
+        function cross(a,b) { return [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]]; }
+        function dot(a,b) { return a[0]*b[0]+a[1]*b[1]+a[2]*b[2]; }
+        function vlen(v) { return Math.sqrt(dot(v,v)); }
+        function vnorm(v) { const l=vlen(v); return l?[v[0]/l,v[1]/l,v[2]/l]:[0,0,0]; }
+        function vsub(a,b) { return [a[0]-b[0],a[1]-b[1],a[2]-b[2]]; }
+
+        const ATOL = 0.002, DTOL = 0.001;
+        const planeGroups = []; // {n, d, faces:[], shared:bool}
+
+        for (let i = 0; i < allFaces.length; i++) {
+            const f = allFaces[i];
+            const v0=allVerts[f[0]], v1=allVerts[f[1]], v2=allVerts[f[2]];
+            let n = vnorm(cross(vsub(v1,v0), vsub(v2,v0)));
+            const cent = [(v0[0]+v1[0]+v2[0])/3,(v0[1]+v1[1]+v2[1])/3,(v0[2]+v1[2]+v2[2])/3];
+            if (dot(n,cent)<0) n = [-n[0],-n[1],-n[2]];
+            const d = dot(n, v0);
+
+            let found = false;
+            for (const g of planeGroups) {
+                const dv = dot(n, g.n);
+                if (Math.abs(dv-1)<ATOL && Math.abs(d-g.d)<DTOL) { g.faces.push(i); found=true; break; }
+                if (Math.abs(dv+1)<ATOL && Math.abs(d+g.d)<DTOL) { g.faces.push(i); found=true; break; }
+            }
+            if (!found) planeGroups.push({n:[...n], d, faces:[i]});
+        }
+
+        // Mark shared vs unique
+        const sharedPlanes = [];
+        const uniquePlanes = [];
+        for (const pg of planeGroups) {
+            if (pg.faces.length >= 3) sharedPlanes.push(pg);
+            else uniquePlanes.push(pg);
+        }
+
+        console.log(`${planeGroups.length} planes: ${sharedPlanes.length} shared, ${uniquePlanes.length} unique`);
+
+        // =================== THREE.JS ===================
+        const container = document.getElementById('canvas-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0a0a12);
+        const camera = new THREE.PerspectiveCamera(50, window.innerWidth/window.innerHeight, 0.1, 1000);
+        camera.position.set(0, 0, 4);
+        const renderer = new THREE.WebGLRenderer({antialias:true});
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        container.appendChild(renderer.domElement);
+
+        scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+        const l1 = new THREE.DirectionalLight(0xffffff, 0.7); l1.position.set(5,5,5); scene.add(l1);
+        const l2 = new THREE.DirectionalLight(0xffffff, 0.3); l2.position.set(-3,-2,3); scene.add(l2);
+
+        const mainGroup = new THREE.Group();
+        mainGroup.rotation.x = -Math.PI / 2;
+        scene.add(mainGroup);
+
+        // =================== BUILD ===================
+        let planeOpacity = 0.15, planeSize = 1.0;
+        let icoVisible = [true,true,true,true,true,true];
+        let showSharedPlanes = true, showUniquePlanes = true;
+        let sharedGroup, uniqueGroup;
+
+        function vec3(a) { return new THREE.Vector3(a[0],a[1],a[2]); }
+
+        function buildScene() {
+            while(mainGroup.children.length) mainGroup.remove(mainGroup.children[0]);
+
+            const showF = document.getElementById('showFaces').checked;
+            const showE = document.getElementById('showEdges').checked;
+
+            // Build each icosahedron
+            for (let ic = 0; ic < 6; ic++) {
+                if (!icoVisible[ic]) continue;
+                const icoGroup = new THREE.Group();
+
+                if (showF) {
+                    const pos = [];
+                    for (let fi = ic*20; fi < (ic+1)*20; fi++) {
+                        const f = allFaces[fi];
+                        for (const vi of f) pos.push(...allVerts[vi]);
+                    }
+                    const geom = new THREE.BufferGeometry();
+                    geom.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+                    geom.computeVertexNormals();
+                    const mat = new THREE.MeshStandardMaterial({
+                        color: COLORS[ic], side: THREE.DoubleSide,
+                        transparent: true, opacity: 0.6,
+                        polygonOffset: true, polygonOffsetFactor: ic, polygonOffsetUnits: ic
+                    });
+                    icoGroup.add(new THREE.Mesh(geom, mat));
+                }
+
+                if (showE) {
+                    const edgeMat = new THREE.LineBasicMaterial({color: 0x000000});
+                    for (let fi = ic*20; fi < (ic+1)*20; fi++) {
+                        const f = allFaces[fi];
+                        const pts = [vec3(allVerts[f[0]]),vec3(allVerts[f[1]]),
+                                     vec3(allVerts[f[2]]),vec3(allVerts[f[0]])];
+                        icoGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), edgeMat));
+                    }
+                }
+
+                mainGroup.add(icoGroup);
+            }
+
+            // Shared planes (3-face, orange)
+            sharedGroup = new THREE.Group();
+            sharedGroup.visible = showSharedPlanes;
+            for (const pg of sharedPlanes) {
+                const n3 = vec3(pg.n);
+                // Disc
+                const disc = new THREE.Mesh(
+                    new THREE.CircleGeometry(planeSize, 48),
+                    new THREE.MeshStandardMaterial({
+                        color: 0xffaa00, side: THREE.DoubleSide,
+                        transparent: true, opacity: planeOpacity, depthWrite: false
+                    })
+                );
+                disc.position.copy(n3.clone().multiplyScalar(pg.d));
+                disc.lookAt(n3.clone().multiplyScalar(pg.d + 1));
+                sharedGroup.add(disc);
+
+                // Highlight coplanar faces
+                const hlPos = [];
+                for (const fi of pg.faces) {
+                    const f = allFaces[fi];
+                    for (const vi of f) hlPos.push(...allVerts[vi]);
+                }
+                const hlGeom = new THREE.BufferGeometry();
+                hlGeom.setAttribute('position', new THREE.Float32BufferAttribute(hlPos, 3));
+                hlGeom.computeVertexNormals();
+                sharedGroup.add(new THREE.Mesh(hlGeom, new THREE.MeshStandardMaterial({
+                    color: 0xffaa00, side: THREE.DoubleSide,
+                    transparent: true, opacity: 0.5,
+                    polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1
+                })));
+            }
+            mainGroup.add(sharedGroup);
+
+            // Unique planes (1-face, purple)
+            uniqueGroup = new THREE.Group();
+            uniqueGroup.visible = showUniquePlanes;
+            for (const pg of uniquePlanes) {
+                const n3 = vec3(pg.n);
+                const disc = new THREE.Mesh(
+                    new THREE.CircleGeometry(planeSize, 48),
+                    new THREE.MeshStandardMaterial({
+                        color: 0xaa44ff, side: THREE.DoubleSide,
+                        transparent: true, opacity: planeOpacity, depthWrite: false
+                    })
+                );
+                disc.position.copy(n3.clone().multiplyScalar(pg.d));
+                disc.lookAt(n3.clone().multiplyScalar(pg.d + 1));
+                uniqueGroup.add(disc);
+
+                // Highlight
+                const hlPos = [];
+                for (const fi of pg.faces) {
+                    const f = allFaces[fi];
+                    for (const vi of f) hlPos.push(...allVerts[vi]);
+                }
+                const hlGeom = new THREE.BufferGeometry();
+                hlGeom.setAttribute('position', new THREE.Float32BufferAttribute(hlPos, 3));
+                hlGeom.computeVertexNormals();
+                uniqueGroup.add(new THREE.Mesh(hlGeom, new THREE.MeshStandardMaterial({
+                    color: 0xaa44ff, side: THREE.DoubleSide,
+                    transparent: true, opacity: 0.5,
+                    polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1
+                })));
+            }
+            mainGroup.add(uniqueGroup);
+        }
+
+        buildScene();
+
+        // =================== CONTROLS ===================
+        document.getElementById('showFaces').addEventListener('change', buildScene);
+        document.getElementById('showEdges').addEventListener('change', buildScene);
+
+        document.getElementById('planeOpacity').addEventListener('input', e => {
+            planeOpacity = parseFloat(e.target.value);
+            document.getElementById('opacVal').textContent = planeOpacity.toFixed(2);
+            buildScene();
+        });
+        document.getElementById('planeSize').addEventListener('input', e => {
+            planeSize = parseFloat(e.target.value);
+            document.getElementById('sizeVal').textContent = planeSize.toFixed(2);
+            buildScene();
+        });
+
+        document.querySelectorAll('.icoCheck').forEach(el => {
+            el.addEventListener('change', e => {
+                icoVisible[parseInt(e.target.dataset.idx)] = e.target.checked;
+                buildScene();
+            });
+        });
+
+        document.getElementById('showShared').addEventListener('change', e => {
+            showSharedPlanes = e.target.checked;
+            if (sharedGroup) sharedGroup.visible = e.target.checked;
+        });
+        document.getElementById('showUnique').addEventListener('change', e => {
+            showUniquePlanes = e.target.checked;
+            if (uniqueGroup) uniqueGroup.visible = e.target.checked;
+        });
+
+        document.getElementById('allPlanes').addEventListener('click', () => {
+            document.getElementById('showShared').checked = true;
+            document.getElementById('showUnique').checked = true;
+            showSharedPlanes = showUniquePlanes = true;
+            if(sharedGroup) sharedGroup.visible = true;
+            if(uniqueGroup) uniqueGroup.visible = true;
+        });
+        document.getElementById('noPlanes').addEventListener('click', () => {
+            document.getElementById('showShared').checked = false;
+            document.getElementById('showUnique').checked = false;
+            showSharedPlanes = showUniquePlanes = false;
+            if(sharedGroup) sharedGroup.visible = false;
+            if(uniqueGroup) uniqueGroup.visible = false;
+        });
+        document.getElementById('sharedOnly').addEventListener('click', () => {
+            document.getElementById('showShared').checked = true;
+            document.getElementById('showUnique').checked = false;
+            showSharedPlanes = true; showUniquePlanes = false;
+            if(sharedGroup) sharedGroup.visible = true;
+            if(uniqueGroup) uniqueGroup.visible = false;
+        });
+        document.getElementById('uniqueOnly').addEventListener('click', () => {
+            document.getElementById('showShared').checked = false;
+            document.getElementById('showUnique').checked = true;
+            showSharedPlanes = false; showUniquePlanes = true;
+            if(sharedGroup) sharedGroup.visible = false;
+            if(uniqueGroup) uniqueGroup.visible = true;
+        });
+
+        // =================== INTERACTION ===================
+        let drag=false, pm={x:0,y:0};
+        container.addEventListener('mousedown', e=>{drag=true;pm={x:e.clientX,y:e.clientY};});
+        container.addEventListener('mousemove', e=>{
+            if(drag){
+                mainGroup.rotation.z+=(e.clientX-pm.x)*0.01;
+                mainGroup.rotation.x+=(e.clientY-pm.y)*0.01;
+                pm={x:e.clientX,y:e.clientY};
+            }
+        });
+        container.addEventListener('mouseup',()=>drag=false);
+        container.addEventListener('mouseleave',()=>drag=false);
+        container.addEventListener('wheel', e=>{
+            e.preventDefault();
+            const s=mainGroup.scale.x*(1+e.deltaY*0.001);
+            mainGroup.scale.setScalar(Math.max(0.1,Math.min(10,s)));
+        },{passive:false});
+        window.addEventListener('resize',()=>{
+            camera.aspect=window.innerWidth/window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth,window.innerHeight);
+        });
+
+        (function animate(){
+            requestAnimationFrame(animate);
+            if(document.getElementById('autoRotate').checked && !drag) mainGroup.rotation.z+=0.005;
+            renderer.render(scene,camera);
+        })();
+    </script>
+</body>
+</html>
