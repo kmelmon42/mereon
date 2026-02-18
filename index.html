@@ -25,6 +25,12 @@
     li {
       margin: 12px 0;
     }
+    li.folder::before {
+      content: "\1F4C1 ";
+    }
+    li.file::before {
+      content: "\1F4C4 ";
+    }
     a {
       color: #60a5fa;
       text-decoration: none;
@@ -34,28 +40,38 @@
       color: #c084fc;
       text-decoration: underline;
     }
+    .back {
+      display: inline-block;
+      margin-bottom: 20px;
+      font-size: 1.1em;
+    }
     .updated {
       margin-top: 40px;
       font-size: 0.85em;
       color: #888;
     }
-  </style>
+</style>
 </head>
 <body>
   <h1>Mereon Matrix Explorations</h1>
   <ul>
-      <li><a href="6_icosahedra_compound.html">6 Icosahedra Compound</a></li>
-      <li><a href="animated120_v2.html">5-JB Compound - Jitterbug Animation</a></li>
-      <li><a href="compound_5x144.html">Compound of 5 × 144 Polyhedra</a></li>
-      <li><a href="fcc_primitive_cell.html">FCC Primitive Cell</a></li>
-      <li><a href="fcc_spheres_with_cell.html">FCC Spheres with Unit Cell</a></li>
-      <li><a href="fcc_unit_cell.html">FCC Unit Cell</a></li>
-      <li><a href="fcc_ve_scales.html">FCC - VE at Two Scales</a></li>
-      <li><a href="single_jitterbug.html">Single Jitterbug Animation</a></li>
-      <li><a href="static120.html">True Compound of 5 Octahedra - Mereon Context</a></li>
-      <li><a href="static144.html">144 Polyhedron - Exact FCC Construction</a></li>
-      <li><a href="vector_equilibrium.html">Vector Equilibrium (Cuboctahedron)</a></li>
-  </ul>
-  <p class="updated">Last updated: 2026-02-16 19:42 UTC</p>
+      <li class="folder"><a href="CompoundShapes/">CompoundShapes</a></li>
+      <li class="folder"><a href="Extras/">Extras</a></li>
+      <li class="folder"><a href="FaceCounter/">FaceCounter</a></li>
+      <li class="folder"><a href="Trials/">Trials</a></li>
+      <li class="folder"><a href="dipolygonids/">dipolygonids</a></li>
+      <li class="file"><a href="6_icosahedra_compound.html">6 Icosahedra Compound</a></li>
+      <li class="file"><a href="animated120_v2.html">5-JB Compound - Jitterbug Animation</a></li>
+      <li class="file"><a href="compound_5x144.html">Compound of 5 × 144 Polyhedra</a></li>
+      <li class="file"><a href="fcc_primitive_cell.html">FCC Primitive Cell</a></li>
+      <li class="file"><a href="fcc_spheres_with_cell.html">FCC Spheres with Unit Cell</a></li>
+      <li class="file"><a href="fcc_unit_cell.html">FCC Unit Cell</a></li>
+      <li class="file"><a href="fcc_ve_scales.html">FCC - VE at Two Scales</a></li>
+      <li class="file"><a href="single_jitterbug.html">Single Jitterbug Animation</a></li>
+      <li class="file"><a href="static120.html">True Compound of 5 Octahedra - Mereon Context</a></li>
+      <li class="file"><a href="static144.html">144 Polyhedron - Exact FCC Construction</a></li>
+      <li class="file"><a href="vector_equilibrium.html">Vector Equilibrium (Cuboctahedron)</a></li>
+</ul>
+  <p class="updated">Last updated: 2026-02-18 18:39 UTC</p>
 </body>
 </html>
