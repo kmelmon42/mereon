@@ -15,16 +15,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
       
-      - name: Generate index.html
+      - name: Generate index pages
         run: |
-          cat << 'HEADER' > index.html
-          <!DOCTYPE html>
-          <html lang="en">
-          <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Mereon Matrix Explorations</title>
-            <style>
+          # Shared CSS styles
+          STYLES='
               body {
                 font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
                 max-width: 800px;
@@ -45,6 +39,12 @@ jobs:
               li {
                 margin: 12px 0;
               }
+              li.folder::before {
+                content: "\1F4C1 ";
+              }
+              li.file::before {
+                content: "\1F4C4 ";
+              }
               a {
                 color: #60a5fa;
                 text-decoration: none;
@@ -54,41 +54,117 @@ jobs:
                 color: #c084fc;
                 text-decoration: underline;
               }
+              .back {
+                display: inline-block;
+                margin-bottom: 20px;
+                font-size: 1.1em;
+              }
               .updated {
                 margin-top: 40px;
                 font-size: 0.85em;
                 color: #888;
               }
-            </style>
+          '
+
+          # Function to generate an index.html for a given directory
+          generate_index() {
+            local dir="$1"
+            local title="$2"
+            local index_file="$dir/index.html"
+            local back_link="$3"
+
+            cat > "$index_file" <<HEADER
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>$title</title>
+            <style>$STYLES</style>
           </head>
           <body>
-            <h1>Mereon Matrix Explorations</h1>
-            <ul>
+            <h1>$title</h1>
           HEADER
 
-          # Find all .html files in root (excluding index.html), extract titles, build links
-          for file in *.html; do
-            if [ "$file" != "index.html" ] && [ -f "$file" ]; then
-              # Try to extract <title> content, fallback to filename
-              title=$(grep -oP '(?<=<title>).*(?=</title>)' "$file" 2>/dev/null | head -1)
-              if [ -z "$title" ]; then
-                title="$file"
-              fi
-              echo "      <li><a href=\"$file\">$title</a></li>" >> index.html
+            # Add back link for subdirectories
+            if [ -n "$back_link" ]; then
+              echo "  <a class=\"back\" href=\"$back_link\">&larr; Back</a>" >> "$index_file"
             fi
-          done
 
-          cat << FOOTER >> index.html
-            </ul>
+            echo "  <ul>" >> "$index_file"
+
+            # List subdirectories that contain at least one .html file (recursive check)
+            for subdir in "$dir"/*/; do
+              [ -d "$subdir" ] || continue
+              dirname=$(basename "$subdir")
+              # Skip hidden directories and .github
+              [[ "$dirname" == .* ]] && continue
+              # Check if this subtree has any .html files (excluding index.html)
+              if find "$subdir" -name '*.html' ! -name 'index.html' | grep -q .; then
+                echo "      <li class=\"folder\"><a href=\"$dirname/\">$dirname</a></li>" >> "$index_file"
+              fi
+            done
+
+            # List .html files in this directory (excluding index.html)
+            for file in "$dir"/*.html; do
+              [ -f "$file" ] || continue
+              filename=$(basename "$file")
+              [ "$filename" = "index.html" ] && continue
+              # Try to extract <title> content, fallback to filename
+              title_text=$(grep -oP '(?<=<title>).*(?=</title>)' "$file" 2>/dev/null | head -1)
+              if [ -z "$title_text" ]; then
+                title_text="$filename"
+              fi
+              echo "      <li class=\"file\"><a href=\"$filename\">$title_text</a></li>" >> "$index_file"
+            done
+
+            cat >> "$index_file" <<FOOTER
+          </ul>
             <p class="updated">Last updated: $(date -u '+%Y-%m-%d %H:%M UTC')</p>
           </body>
           </html>
           FOOTER
+          }
+
+          # Generate root index
+          generate_index "." "Mereon Matrix Explorations" ""
+
+          # Find all subdirectories (recursively) that contain .html files and generate index pages
+          find . -mindepth 1 -type d ! -path './.git*' ! -path './.github*' | sort | while read -r subdir; do
+            # Check if this directory has any .html files (direct children, excluding index.html)
+            has_html=false
+            for f in "$subdir"/*.html; do
+              [ -f "$f" ] || continue
+              [ "$(basename "$f")" = "index.html" ] && continue
+              has_html=true
+              break
+            done
+            # Also check if it has subdirectories with html files
+            has_subdir_html=false
+            for d in "$subdir"/*/; do
+              [ -d "$d" ] || continue
+              if find "$d" -name '*.html' ! -name 'index.html' | grep -q .; then
+                has_subdir_html=true
+                break
+              fi
+            done
+            if $has_html || $has_subdir_html; then
+              dirname=$(basename "$subdir")
+              # Calculate relative back link (go up one level)
+              depth=$(echo "$subdir" | tr -cd '/' | wc -c)
+              back=""
+              for i in $(seq 1 "$depth"); do
+                back="../$back"
+              done
+              generate_index "$subdir" "$dirname" "${back}"
+            fi
+          done
 
       - name: Commit and push if changed
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add index.html
+          git add '**/index.html'
           git diff --staged --quiet || git commit -m "Auto-update index.html"
           git push
