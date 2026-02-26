@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>144 Polyhedron — Complete Vertex Coordinates</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=DM+Sans:ital,wght@0,400;0,500;0,700;1,400&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700;1,9..144,300&display=swap');
+
+:root {
+  --bg: #0c0e13;
+  --bg2: #12151c;
+  --bg3: #1a1e28;
+  --border: #252a36;
+  --text: #c8cdd8;
+  --text-dim: #6b7280;
+  --accent: #60a5fa;
+  --accent2: #a78bfa;
+  --shell16: #f59e0b;
+  --shell14: #60a5fa;
+  --shell12: #34d399;
+  --shell8: #f472b6;
+  --mono: 'JetBrains Mono', monospace;
+  --sans: 'DM Sans', sans-serif;
+  --display: 'Fraunces', serif;
+}
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+html { font-size: 15px; }
+body { 
+  font-family: var(--sans); background: var(--bg); color: var(--text);
+  line-height: 1.6; min-height: 100vh;
+}
+.container { max-width: 1200px; margin: 0 auto; padding: 2rem 1.5rem; }
+h1 { 
+  font-family: var(--display); font-weight: 700; font-size: 2.2rem;
+  color: #fff; margin-bottom: 0.3rem; letter-spacing: -0.02em;
+}
+h1 span { color: var(--accent); }
+.subtitle { color: var(--text-dim); font-size: 0.95rem; margin-bottom: 2rem; }
+h2 {
+  font-family: var(--display); font-weight: 700; font-size: 1.4rem;
+  color: #e2e8f0; margin: 2.5rem 0 1rem 0; letter-spacing: -0.01em;
+  padding-bottom: 0.5rem; border-bottom: 1px solid var(--border);
+}
+h3 { font-size: 1rem; color: var(--accent); margin: 1.5rem 0 0.5rem 0; font-weight: 500; }
+
+.topbar {
+  display: flex; gap: 2rem; align-items: stretch; margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+.stats-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.8rem;
+  flex: 1; min-width: 280px;
+}
+.stat {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 8px;
+  padding: 1rem 1.2rem; text-align: center;
+}
+.stat-val { font-family: var(--mono); font-size: 1.8rem; font-weight: 600; color: #fff; }
+.stat-label { font-size: 0.75rem; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 0.2rem; }
+
+.viewer-wrap {
+  flex: 0 0 340px; height: 340px; background: var(--bg2);
+  border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+  position: relative;
+}
+.viewer-wrap canvas { width: 100% !important; height: 100% !important; }
+.viewer-label {
+  position: absolute; bottom: 8px; left: 10px;
+  font-size: 0.65rem; color: var(--text-dim); font-family: var(--mono);
+}
+.viewer-controls {
+  position: absolute; top: 8px; right: 8px; display: flex; gap: 4px;
+}
+.viewer-controls button {
+  background: rgba(0,0,0,0.6); border: 1px solid var(--border);
+  color: var(--text-dim); font-family: var(--mono); font-size: 0.65rem;
+  padding: 3px 8px; border-radius: 4px; cursor: pointer;
+}
+.viewer-controls button:hover { color: #fff; border-color: var(--accent); }
+.viewer-controls button.active { color: var(--accent); border-color: var(--accent); }
+
+.confirmation {
+  background: linear-gradient(135deg, rgba(52,211,153,0.08), rgba(96,165,250,0.08));
+  border: 1px solid rgba(52,211,153,0.25); border-radius: 8px;
+  padding: 1.2rem 1.5rem; margin: 1.5rem 0;
+}
+.confirmation strong { color: var(--shell12); }
+.confirmation .check { color: var(--shell12); font-size: 1.1rem; }
+
+.shell-section {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 8px;
+  margin: 1rem 0; overflow: hidden;
+}
+.shell-header {
+  display: flex; align-items: center; gap: 0.8rem;
+  padding: 0.8rem 1.2rem; cursor: pointer; user-select: none;
+  border-bottom: 1px solid var(--border);
+}
+.shell-header:hover { background: var(--bg3); }
+.shell-dot {
+  width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+}
+.shell-title { font-family: var(--mono); font-weight: 500; font-size: 0.9rem; color: #fff; flex: 1; }
+.shell-count { font-family: var(--mono); font-size: 0.8rem; color: var(--text-dim); }
+.shell-badge {
+  font-size: 0.65rem; padding: 2px 8px; border-radius: 10px;
+  font-family: var(--mono); font-weight: 500;
+}
+
+table.coords {
+  width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 0.8rem;
+}
+table.coords th {
+  text-align: left; padding: 0.5rem 0.8rem;
+  color: var(--text-dim); font-weight: 500; font-size: 0.7rem;
+  text-transform: uppercase; letter-spacing: 0.1em;
+  border-bottom: 1px solid var(--border); background: var(--bg3);
+  position: sticky; top: 0;
+}
+table.coords td {
+  padding: 0.35rem 0.8rem; border-bottom: 1px solid rgba(255,255,255,0.03);
+  white-space: nowrap;
+}
+table.coords tr:hover td { background: rgba(96,165,250,0.05); }
+table.coords .idx { color: var(--text-dim); width: 40px; }
+table.coords .coord { text-align: right; min-width: 50px; }
+table.coords .frac { text-align: right; min-width: 65px; color: var(--accent); }
+table.coords .r2 { text-align: right; color: var(--text-dim); }
+table.coords .fcc-check { text-align: center; color: var(--shell12); }
+
+.edge-table { margin: 1rem 0; }
+.edge-row {
+  display: grid; grid-template-columns: 80px 100px 1fr 80px;
+  gap: 0.5rem; padding: 0.5rem 1rem; align-items: center;
+  font-family: var(--mono); font-size: 0.85rem;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+}
+.edge-row.header { color: var(--text-dim); font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.1em; }
+.edge-bar { height: 6px; border-radius: 3px; background: var(--accent); opacity: 0.6; }
+
+.off-section {
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 8px;
+  overflow: hidden; margin: 1rem 0;
+}
+.off-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 0.8rem 1.2rem; border-bottom: 1px solid var(--border);
+}
+.off-header span { font-family: var(--mono); font-weight: 500; font-size: 0.9rem; color: #fff; }
+.off-actions { display: flex; gap: 0.5rem; }
+.btn {
+  background: var(--bg3); border: 1px solid var(--border); color: var(--text);
+  font-family: var(--mono); font-size: 0.75rem; padding: 5px 12px;
+  border-radius: 4px; cursor: pointer; transition: all 0.15s;
+}
+.btn:hover { border-color: var(--accent); color: var(--accent); }
+.btn.primary { background: rgba(96,165,250,0.15); border-color: rgba(96,165,250,0.3); color: var(--accent); }
+.off-pre {
+  padding: 1rem 1.2rem; max-height: 400px; overflow: auto;
+  font-family: var(--mono); font-size: 0.75rem; line-height: 1.5;
+  color: var(--text-dim); white-space: pre; tab-size: 2;
+}
+.off-pre .comment { color: #6b7280; }
+.off-pre .keyword { color: var(--accent); font-weight: 600; }
+.off-pre .num { color: var(--shell12); }
+.off-pre .face { color: var(--accent2); }
+
+.method-note {
+  font-size: 0.85rem; color: var(--text-dim); line-height: 1.7;
+  padding: 0 0 1rem 0;
+}
+.method-note code {
+  font-family: var(--mono); background: var(--bg3); padding: 1px 5px;
+  border-radius: 3px; font-size: 0.8rem; color: var(--text);
+}
+
+.formula {
+  font-family: var(--mono); background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 6px; padding: 0.8rem 1.2rem; margin: 0.5rem 0;
+  font-size: 0.85rem; color: var(--accent2);
+}
+
+footer {
+  margin-top: 3rem; padding-top: 1.5rem; border-top: 1px solid var(--border);
+  font-size: 0.75rem; color: var(--text-dim); text-align: center;
+}
+footer a { color: var(--accent); text-decoration: none; }
+footer a:hover { text-decoration: underline; }
+
+@media (max-width: 768px) {
+  .topbar { flex-direction: column; }
+  .viewer-wrap { flex: auto; height: 280px; }
+  .stats-grid { grid-template-columns: repeat(3, 1fr); }
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>The <span>144</span> Polyhedron</h1>
+  <p class="subtitle">Complete vertex coordinates at minimum/closed configuration &middot; FCC lattice construction &middot; OFF format</p>
+
+  <div class="topbar">
+    <div class="stats-grid">
+      <div class="stat"><div class="stat-val">74</div><div class="stat-label">Vertices</div></div>
+      <div class="stat"><div class="stat-val">216</div><div class="stat-label">Edges</div></div>
+      <div class="stat"><div class="stat-val">144</div><div class="stat-label">Faces</div></div>
+      <div class="stat"><div class="stat-val" style="font-size:1.3rem;">V&minus;E+F=2</div><div class="stat-label">Euler Check</div></div>
+      <div class="stat"><div class="stat-val">4</div><div class="stat-label">FCC Shells</div></div>
+      <div class="stat"><div class="stat-val">O<sub style="font-size:0.7em">h</sub></div><div class="stat-label">Symmetry</div></div>
+    </div>
+    <div class="viewer-wrap" id="viewer">
+      <div class="viewer-controls">
+        <button id="btnSpin" class="active" onclick="toggleSpin()">Spin</button>
+        <button onclick="resetView()">Reset</button>
+      </div>
+      <div class="viewer-label">drag to rotate &middot; scroll to zoom</div>
+    </div>
+  </div>
+
+  <div class="confirmation">
+    <strong class="check">✓ Confirmed:</strong> All 74 vertex coordinates are expressible using <strong>only rational numbers</strong>. 
+    In FCC integer form, every coordinate is an integer. Normalized (÷4), every coordinate is a rational multiple of ¼.
+    Edge lengths involve only <strong>√2</strong> and <strong>√3</strong> (via √2, 2, √6, 2√2, 2√3). 
+    <strong class="check">No φ (golden ratio) terms appear anywhere.</strong>
+  </div>
+
+  <h2>Construction</h2>
+  <p class="method-note">
+    The 144 Polyhedron lives entirely on the <strong>Face-Centered Cubic (FCC) lattice</strong>, 
+    which Fuller called the Isotropic Vector Matrix (IVM). The construction begins with a 
+    dual Cube-Octahedron pair: an octahedron with vertices at <code>(±4, 0, 0)</code> and permutations 
+    (6 vertices on the r²=16 shell), and its dual cube at <code>(±2, ±2, ±2)</code> (8 vertices on 
+    the r²=12 shell). The 12 octahedron edge midpoints at <code>(±2, ±2, 0)</code> and permutations 
+    sit on the r²=8 shell. Each octahedral face is subdivided into 6 regions, each further 
+    split into 3 triangles using FCC-snapped centroids at <code>(±3, ±2, ±1)</code> permutations 
+    (48 vertices on the r²=14 shell), yielding 8 × 6 × 3 = 144 triangular faces.
+  </p>
+
+  <h2>Vertex Coordinates by FCC Shell</h2>
+
+  <div id="shell-sections"></div>
+
+  <h2>Edge Length Analysis</h2>
+  <p class="method-note">Five distinct edge lengths occur, all expressible via √2 and √3:</p>
+  <div id="edge-analysis"></div>
+
+  <h2>OFF File <span style="color:var(--text-dim);font-size:0.8em;font-weight:400">(Object File Format)</span></h2>
+  <p class="method-note">
+    Standard format used by Geomview, CGAL, Antiprism, Polyhedronisme, and other polyhedra community tools.
+    Integer FCC coordinates (divide by 4 for unit normalization).
+  </p>
+  <div class="off-section">
+    <div class="off-header">
+      <span>144_polyhedron.off</span>
+      <div class="off-actions">
+        <button class="btn primary" onclick="downloadOFF()">⬇ Download .off</button>
+        <button class="btn" onclick="copyOFF()">Copy</button>
+      </div>
+    </div>
+    <div class="off-pre" id="off-display"></div>
+  </div>
+
+  <footer>
+    144 Polyhedron &middot; Mereon Matrix Core (Tau 144/300) &middot; 
+    Construction after <a href="https://rwgrayprojects.com/Lynn/NCH/whatpoly5.html" target="_blank">R.W. Gray</a>
+    &middot; FCC / IVM lattice &middot; O<sub>h</sub> symmetry
+  </footer>
+</div>
+
+<!-- Embedded OFF data -->
+<script id="off-data" type="text/plain">
+# 144 Polyhedron — FCC Lattice Coordinates
+# Construction: Octahedron-Cube dual pair in the Isotropic Vector Matrix
+# Scale: 4 (outer octahedron vertices at ±4 on axes)
+# All coordinates are integers on the FCC lattice (x+y+z ≡ 0 mod 2)
+# Divide all coordinates by 4 for unit normalization
+# Source: Mereon Matrix / R.W. Gray construction
+OFF
+74 144 216
+  +4  +0  +0
+  +2  +2  +0
+  +2  +2  +2
+  +3  +2  +1
+  +0  +4  +0
+  +2  +3  +1
+  +0  +2  +2
+  +1  +3  +2
+  +0  +0  +4
+  +1  +2  +3
+  +2  +0  +2
+  +2  +1  +3
+  +3  +1  +2
+  +2  -2  +2
+  +3  -1  +2
+  +2  -1  +3
+  +0  -2  +2
+  +1  -2  +3
+  +0  -4  +0
+  +1  -3  +2
+  +2  -2  +0
+  +2  -3  +1
+  +3  -2  +1
+  +2  -2  -2
+  +3  -2  -1
+  +2  -3  -1
+  +0  -2  -2
+  +1  -3  -2
+  +0  +0  -4
+  +1  -2  -3
+  +2  +0  -2
+  +2  -1  -3
+  +3  -1  -2
+  +2  +2  -2
+  +3  +1  -2
+  +2  +1  -3
+  +0  +2  -2
+  +1  +2  -3
+  +1  +3  -2
+  +2  +3  -1
+  +3  +2  -1
+  -4  +0  +0
+  -2  +0  +2
+  -2  +2  +2
+  -3  +1  +2
+  -2  +1  +3
+  -1  +2  +3
+  -1  +3  +2
+  -2  +2  +0
+  -2  +3  +1
+  -3  +2  +1
+  -2  -2  +0
+  -2  -2  +2
+  -3  -2  +1
+  -2  -3  +1
+  -1  -3  +2
+  -1  -2  +3
+  -2  -1  +3
+  -3  -1  +2
+  -2  +0  -2
+  -2  -2  -2
+  -3  -1  -2
+  -2  -1  -3
+  -1  -2  -3
+  -1  -3  -2
+  -2  -3  -1
+  -3  -2  -1
+  -2  +2  -2
+  -3  +2  -1
+  -2  +3  -1
+  -1  +3  -2
+  -1  +2  -3
+  -2  +1  -3
+  -3  +1  -2
+3  0  1  3
+3  1  2  3
+3  2  0  3
+3  1  4  5
+3  4  2  5
+3  2  1  5
+3  4  6  7
+3  6  2  7
+3  2  4  7
+3  6  8  9
+3  8  2  9
+3  2  6  9
+3  8  10  11
+3  10  2  11
+3  2  8  11
+3  10  0  12
+3  0  2  12
+3  2  10  12
+3  0  10  14
+3  10  13  14
+3  13  0  14
+3  10  8  15
+3  8  13  15
+3  13  10  15
+3  8  16  17
+3  16  13  17
+3  13  8  17
+3  16  18  19
+3  18  13  19
+3  13  16  19
+3  18  20  21
+3  20  13  21
+3  13  18  21
+3  20  0  22
+3  0  13  22
+3  13  20  22
+3  0  20  24
+3  20  23  24
+3  23  0  24
+3  20  18  25
+3  18  23  25
+3  23  20  25
+3  18  26  27
+3  26  23  27
+3  23  18  27
+3  26  28  29
+3  28  23  29
+3  23  26  29
+3  28  30  31
+3  30  23  31
+3  23  28  31
+3  30  0  32
+3  0  23  32
+3  23  30  32
+3  0  30  34
+3  30  33  34
+3  33  0  34
+3  30  28  35
+3  28  33  35
+3  33  30  35
+3  28  36  37
+3  36  33  37
+3  33  28  37
+3  36  4  38
+3  4  33  38
+3  33  36  38
+3  4  1  39
+3  1  33  39
+3  33  4  39
+3  1  0  40
+3  0  33  40
+3  33  1  40
+3  41  42  44
+3  42  43  44
+3  43  41  44
+3  42  8  45
+3  8  43  45
+3  43  42  45
+3  8  6  46
+3  6  43  46
+3  43  8  46
+3  6  4  47
+3  4  43  47
+3  43  6  47
+3  4  48  49
+3  48  43  49
+3  43  4  49
+3  48  41  50
+3  41  43  50
+3  43  48  50
+3  41  51  53
+3  51  52  53
+3  52  41  53
+3  51  18  54
+3  18  52  54
+3  52  51  54
+3  18  16  55
+3  16  52  55
+3  52  18  55
+3  16  8  56
+3  8  52  56
+3  52  16  56
+3  8  42  57
+3  42  52  57
+3  52  8  57
+3  42  41  58
+3  41  52  58
+3  52  42  58
+3  41  59  61
+3  59  60  61
+3  60  41  61
+3  59  28  62
+3  28  60  62
+3  60  59  62
+3  28  26  63
+3  26  60  63
+3  60  28  63
+3  26  18  64
+3  18  60  64
+3  60  26  64
+3  18  51  65
+3  51  60  65
+3  60  18  65
+3  51  41  66
+3  41  60  66
+3  60  51  66
+3  41  48  68
+3  48  67  68
+3  67  41  68
+3  48  4  69
+3  4  67  69
+3  67  48  69
+3  4  36  70
+3  36  67  70
+3  67  4  70
+3  36  28  71
+3  28  67  71
+3  67  36  71
+3  28  59  72
+3  59  67  72
+3  67  28  72
+3  59  41  73
+3  41  67  73
+3  67  59  73
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// Parse OFF data
+const offRaw = document.getElementById('off-data').textContent.trim();
+const offLines = offRaw.split('\n').filter(l => !l.startsWith('#') && l.trim());
+const [nV, nF, nE] = offLines[1].trim().split(/\s+/).map(Number);
+const verts = [], faces = [];
+for (let i = 0; i < nV; i++) {
+  const parts = offLines[2 + i].trim().split(/\s+/).map(Number);
+  verts.push(parts);
+}
+for (let i = 0; i < nF; i++) {
+  const parts = offLines[2 + nV + i].trim().split(/\s+/).map(Number);
+  faces.push([parts[1], parts[2], parts[3]]);
+}
+
+// Shell classification
+const shellInfo = {
+  16: { name: 'Octahedron Vertices', type: 'Permutations of (±4, 0, 0)', color: '#f59e0b', count: 6 },
+  14: { name: 'LCD Triangle Apices', type: 'Permutations of (±3, ±2, ±1)', color: '#60a5fa', count: 48 },
+  12: { name: 'Cube Vertices', type: '(±2, ±2, ±2)', color: '#34d399', count: 8 },
+  8:  { name: 'Edge Midpoints', type: 'Permutations of (±2, ±2, 0)', color: '#f472b6', count: 12 }
+};
+
+const edgeInfo = [
+  { d2: 2,  sym: '√2',    dec: '1.4142', count: 96 },
+  { d2: 4,  sym: '2',     dec: '2.0000', count: 24 },
+  { d2: 6,  sym: '√6 = √2·√3', dec: '2.4495', count: 48 },
+  { d2: 8,  sym: '2√2',   dec: '2.8284', count: 24 },
+  { d2: 12, sym: '2√3',   dec: '3.4641', count: 24 }
+];
+
+// Build shell sections
+const shellContainer = document.getElementById('shell-sections');
+const SCALE = 4;
+
+for (const r2 of [16, 14, 12, 8]) {
+  const info = shellInfo[r2];
+  const shellVerts = verts.map((v, i) => ({i, x:v[0], y:v[1], z:v[2], r2: v[0]*v[0]+v[1]*v[1]+v[2]*v[2]}))
+    .filter(v => v.r2 === r2)
+    .sort((a,b) => a.x !== b.x ? b.x - a.x : a.y !== b.y ? b.y - a.y : a.z - b.z);
+
+  const section = document.createElement('div');
+  section.className = 'shell-section';
+  
+  const frac = (n) => {
+    if (n === 0) return '0';
+    const sign = n < 0 ? '−' : '';
+    const a = Math.abs(n);
+    if (a % 4 === 0) return sign + (a/4);
+    if (a % 2 === 0) return sign + (a/2) + '/2';
+    return sign + a + '/4';
+  };
+
+  let tableRows = shellVerts.map(v => `
+    <tr>
+      <td class="idx">${v.i}</td>
+      <td class="coord">${v.x > 0 ? '+' : ''}${v.x}</td>
+      <td class="coord">${v.y > 0 ? '+' : v.y === 0 ? ' ' : ''}${v.y}</td>
+      <td class="coord">${v.z > 0 ? '+' : v.z === 0 ? ' ' : ''}${v.z}</td>
+      <td class="frac">${frac(v.x)}</td>
+      <td class="frac">${frac(v.y)}</td>
+      <td class="frac">${frac(v.z)}</td>
+      <td class="r2">${v.r2}</td>
+      <td class="fcc-check">✓</td>
+    </tr>`).join('');
+
+  section.innerHTML = `
+    <div class="shell-header" onclick="this.parentElement.classList.toggle('collapsed')">
+      <div class="shell-dot" style="background:${info.color}"></div>
+      <div class="shell-title">r² = ${r2} — ${info.name}</div>
+      <div class="shell-count">${info.count} vertices</div>
+      <div class="shell-badge" style="background:${info.color}22;color:${info.color}">${info.type}</div>
+    </div>
+    <div class="shell-body">
+      <table class="coords">
+        <thead><tr>
+          <th>#</th><th colspan="3" style="text-align:center">FCC Integer</th>
+          <th colspan="3" style="text-align:center">Normalized (÷4)</th>
+          <th>r²</th><th>FCC</th>
+        </tr>
+        <tr>
+          <th></th><th style="text-align:right">x</th><th style="text-align:right">y</th><th style="text-align:right">z</th>
+          <th style="text-align:right">x</th><th style="text-align:right">y</th><th style="text-align:right">z</th>
+          <th></th><th></th>
+        </tr></thead>
+        <tbody>${tableRows}</tbody>
+      </table>
+    </div>`;
+  shellContainer.appendChild(section);
+}
+
+// Edge analysis
+const edgeContainer = document.getElementById('edge-analysis');
+const maxCount = Math.max(...edgeInfo.map(e => e.count));
+let edgeHTML = `<div class="edge-table">
+  <div class="edge-row header"><div>d²</div><div>Length</div><div></div><div>Count</div></div>`;
+for (const e of edgeInfo) {
+  const pct = (e.count / maxCount * 100).toFixed(0);
+  edgeHTML += `<div class="edge-row">
+    <div style="color:var(--accent2)">${e.d2}</div>
+    <div style="color:#fff">${e.sym}</div>
+    <div><div class="edge-bar" style="width:${pct}%"></div></div>
+    <div>${e.count}</div>
+  </div>`;
+}
+edgeHTML += '</div>';
+edgeHTML += '<div class="formula">Total edges: 96 + 24 + 48 + 24 + 24 = 216 &nbsp; (= 3 × 144 / 2, consistent with all-triangle mesh)</div>';
+edgeContainer.innerHTML = edgeHTML;
+
+// OFF display with syntax highlighting
+const offDisplay = document.getElementById('off-display');
+offDisplay.innerHTML = offRaw.split('\n').map(line => {
+  if (line.startsWith('#')) return `<span class="comment">${line}</span>`;
+  if (line.trim() === 'OFF') return `<span class="keyword">OFF</span>`;
+  if (line.match(/^74\s/)) return `<span class="num">${line}</span>`;
+  if (line.match(/^\s*3\s/)) return `<span class="face">${line}</span>`;
+  if (line.match(/^\s*[+-]?\d/)) return `<span class="num">${line}</span>`;
+  return line;
+}).join('\n');
+
+// Download/Copy
+function downloadOFF() {
+  const blob = new Blob([offRaw], {type: 'text/plain'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '144_polyhedron.off';
+  a.click();
+}
+function copyOFF() {
+  navigator.clipboard.writeText(offRaw);
+  event.target.textContent = 'Copied!';
+  setTimeout(() => event.target.textContent = 'Copy', 1500);
+}
+
+// Three.js viewer
+const container = document.getElementById('viewer');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x12151c);
+const camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.01, 100);
+camera.position.set(0, 0, 4.2);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(container.clientWidth, container.clientHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+container.insertBefore(renderer.domElement, container.firstChild);
+
+scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+const dl = new THREE.DirectionalLight(0xffffff, 0.6);
+dl.position.set(3, 5, 4);
+scene.add(dl);
+const dl2 = new THREE.DirectionalLight(0x8888ff, 0.3);
+dl2.position.set(-3, -2, -4);
+scene.add(dl2);
+
+const group = new THREE.Group();
+scene.add(group);
+
+// Faces
+const faceGeo = new THREE.BufferGeometry();
+const pos = [];
+for (const f of faces) {
+  for (const idx of f) {
+    const v = verts[idx];
+    pos.push(v[0]/SCALE, v[1]/SCALE, v[2]/SCALE);
+  }
+}
+faceGeo.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+faceGeo.computeVertexNormals();
+group.add(new THREE.Mesh(faceGeo, new THREE.MeshStandardMaterial({
+  color: 0x3b82f6, side: THREE.DoubleSide, transparent: true, opacity: 0.7,
+  metalness: 0.1, roughness: 0.6
+})));
+
+// Edges
+const edgeMat = new THREE.LineBasicMaterial({ color: 0x1e293b, transparent: true, opacity: 0.5 });
+for (const f of faces) {
+  const pts = [...f.map(i => new THREE.Vector3(verts[i][0]/SCALE, verts[i][1]/SCALE, verts[i][2]/SCALE)),
+    new THREE.Vector3(verts[f[0]][0]/SCALE, verts[f[0]][1]/SCALE, verts[f[0]][2]/SCALE)];
+  group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), edgeMat));
+}
+
+// Vertex spheres by shell
+const sphereGeo = new THREE.SphereGeometry(0.025, 12, 12);
+for (let i = 0; i < verts.length; i++) {
+  const v = verts[i];
+  const r2 = v[0]*v[0]+v[1]*v[1]+v[2]*v[2];
+  const info = shellInfo[r2];
+  const color = info ? info.color : '#ffffff';
+  const m = new THREE.Mesh(sphereGeo, new THREE.MeshStandardMaterial({ color, emissive: new THREE.Color(color).multiplyScalar(0.3) }));
+  m.position.set(v[0]/SCALE, v[1]/SCALE, v[2]/SCALE);
+  group.add(m);
+}
+
+// Interaction
+let spinning = true, dragging = false, prevMouse = {x:0,y:0};
+function toggleSpin() {
+  spinning = !spinning;
+  document.getElementById('btnSpin').classList.toggle('active', spinning);
+}
+function resetView() {
+  group.rotation.set(0, 0, 0);
+  camera.position.set(0, 0, 4.2);
+}
+container.addEventListener('mousedown', e => { dragging = true; prevMouse = {x:e.clientX,y:e.clientY}; });
+container.addEventListener('mousemove', e => {
+  if (!dragging) return;
+  group.rotation.y += (e.clientX - prevMouse.x) * 0.008;
+  group.rotation.x += (e.clientY - prevMouse.y) * 0.008;
+  prevMouse = {x:e.clientX,y:e.clientY};
+});
+container.addEventListener('mouseup', () => dragging = false);
+container.addEventListener('mouseleave', () => dragging = false);
+container.addEventListener('wheel', e => { e.preventDefault(); camera.position.z *= 1 + e.deltaY*0.001; }, {passive:false});
+
+// Touch support
+container.addEventListener('touchstart', e => { if(e.touches.length===1){dragging=true;prevMouse={x:e.touches[0].clientX,y:e.touches[0].clientY};} }, {passive:true});
+container.addEventListener('touchmove', e => { if(!dragging||e.touches.length!==1)return; group.rotation.y+=(e.touches[0].clientX-prevMouse.x)*0.008; group.rotation.x+=(e.touches[0].clientY-prevMouse.y)*0.008; prevMouse={x:e.touches[0].clientX,y:e.touches[0].clientY}; }, {passive:true});
+container.addEventListener('touchend', () => dragging = false);
+
+(function animate() {
+  requestAnimationFrame(animate);
+  if (spinning && !dragging) group.rotation.y += 0.003;
+  renderer.render(scene, camera);
+})();
+
+window.addEventListener('resize', () => {
+  camera.aspect = container.clientWidth / container.clientHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(container.clientWidth, container.clientHeight);
+});
+</script>
+</body>
+</html>
