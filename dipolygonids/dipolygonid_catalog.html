@@ -1,0 +1,2114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dipolygonid Catalog — Verheyen 1989</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:system-ui,sans-serif; background:#0a0a12; color:#eee; min-height:100vh; }
+
+header {
+  background:rgba(18,18,26,0.97); border-bottom:1px solid #223;
+  padding:16px 26px 12px; position:sticky; top:0; z-index:200;
+}
+header h1 { font-size:1.1rem; color:#7af; }
+header p  { font-size:0.75rem; color:#555; margin-top:3px; }
+
+.layout { display:flex; min-height:calc(100vh - 58px); }
+
+#sidebar {
+  width:220px; min-width:220px; background:rgba(18,18,26,0.9);
+  border-right:1px solid #223; padding:12px 8px;
+  position:sticky; top:58px; height:calc(100vh - 58px); overflow-y:auto;
+}
+#sidebar h2 {
+  font-size:0.68rem; color:#444; text-transform:uppercase;
+  letter-spacing:.08em; margin:12px 0 4px 6px;
+}
+#sidebar h2:first-child { margin-top:0; }
+.nav-btn {
+  display:block; width:100%; text-align:left; background:none; border:none;
+  color:#888; font-size:0.79rem; padding:5px 10px; border-radius:4px;
+  cursor:pointer; transition:background .15s,color .15s;
+}
+.nav-btn:hover  { background:#1a1a28; color:#7af; }
+.nav-btn.active { background:#1e2240; color:#7af; font-weight:600; }
+
+#main { flex:1; padding:24px 28px; overflow-y:auto; }
+
+.section-heading {
+  font-size:1rem; color:#7af; border-bottom:1px solid #223;
+  padding-bottom:7px; margin-bottom:12px; scroll-margin-top:75px;
+}
+.section-sub { font-size:0.78rem; color:#666; margin-bottom:16px; line-height:1.6; }
+
+.card-grid {
+  display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr));
+  gap:12px; margin-bottom:32px;
+}
+
+.card {
+  background:rgba(18,18,28,.85); border:1px solid #223; border-radius:8px;
+  overflow:hidden; transition:border-color .2s,transform .15s; cursor:pointer;
+}
+.card:hover { border-color:#557; transform:translateY(-1px); }
+.card.active-hover { border-color:#7af; }
+
+.card-thumb {
+  width:100%; aspect-ratio:1; background:#060610;
+  display:flex; align-items:center; justify-content:center;
+  position:relative; overflow:hidden;
+}
+.card-thumb img { width:100%; height:100%; object-fit:cover; display:block; transition:opacity .3s; }
+.card-thumb .badge {
+  position:absolute; top:6px; left:6px;
+  background:rgba(0,0,0,.75); border:1px solid #335;
+  border-radius:3px; font-size:.62rem; color:#7af; padding:2px 6px; z-index:1;
+}
+.card-thumb .verified-badge {
+  position:absolute; top:6px; right:6px;
+  background:rgba(0,60,0,.85); border:1px solid #363;
+  border-radius:3px; font-size:.6rem; color:#7d7; padding:2px 6px; z-index:1;
+}
+.card-thumb .schematic-badge {
+  position:absolute; top:6px; right:6px;
+  background:rgba(40,30,0,.85); border:1px solid #553;
+  border-radius:3px; font-size:.6rem; color:#aa8; padding:2px 6px; z-index:1;
+}
+
+#live-overlay {
+  position:fixed; pointer-events:none; z-index:300; display:none;
+}
+
+.card-body { padding:10px 12px 12px; }
+.card-title  { font-size:.84rem; color:#cce; margin-bottom:2px; }
+.card-formula{ font-size:.73rem; color:#7af; font-family:monospace; margin-bottom:5px; }
+.card-desc   { font-size:.71rem; color:#666; line-height:1.5; }
+.card-tags   { margin-top:6px; display:flex; flex-wrap:wrap; gap:3px; }
+.tag { font-size:.61rem; padding:2px 6px; border-radius:10px; background:#1a1a30; color:#99b; border:1px solid #334; }
+.tag.regular    { border-color:#a77; color:#faa; background:#200a0a; }
+.tag.equiradial { border-color:#7a7; color:#afa; background:#0a200a; }
+.tag.chiral     { border-color:#aa7; color:#ff9; background:#1a1a00; }
+.tag.infinite   { border-color:#77a; color:#aaf; background:#0a0a20; }
+.anim-btn {
+  margin-top:8px; width:100%; background:#335; color:#dde; border:none;
+  padding:5px; border-radius:4px; cursor:pointer; font-size:.73rem;
+}
+.anim-btn:hover { background:#447; }
+
+.info-box {
+  background:rgba(20,20,35,.8); border:1px solid #334; border-radius:6px;
+  padding:12px 15px; margin-bottom:20px; font-size:.78rem; line-height:1.7; color:#999;
+}
+.info-box strong { color:#cce; }
+.info-box code {
+  background:#111120; border:1px solid #334; padding:1px 5px;
+  border-radius:3px; font-size:.72rem; color:#7af;
+}
+table { border-collapse:collapse; width:100%; }
+td { padding:3px 8px; font-size:.75rem; }
+
+#detail-panel {
+  position:fixed; left:0; right:0; top:0; bottom:0; width:100%;
+  background:rgba(10,10,18,.98); border:none;
+  z-index:400; transform:translateX(100%); transition:transform .25s, visibility .25s;
+  display:flex; flex-direction:column; visibility:hidden; overflow:hidden;
+}
+#detail-panel.open { transform:translateX(0); visibility:visible; }
+
+#detail-header {
+  padding:14px 16px 10px; border-bottom:1px solid #223;
+  display:flex; justify-content:space-between; align-items:flex-start; flex-shrink:0;
+}
+#detail-title   { font-size:.95rem; color:#7af; }
+#detail-formula { font-size:.76rem; color:#aaf; font-family:monospace; margin-top:2px; }
+#close-btn {
+  background:rgba(20,20,30,.95); border:1px solid #445; color:#aaa;
+  padding:6px 12px; border-radius:4px; cursor:pointer; font-size:.82rem;
+  z-index:10; position:relative;
+}
+#close-btn:hover { background:#223; color:#eee; }
+
+#detail-body {
+  flex:1; display:flex; flex-direction:row; overflow:hidden; min-height:0;
+}
+
+#detail-left {
+  width:340px; min-width:280px; max-width:400px; flex-shrink:0;
+  display:flex; flex-direction:column; border-right:1px solid #223; overflow-y:auto;
+}
+
+#detail-controls {
+  padding:10px 14px; border-bottom:1px solid #223; flex-shrink:0; font-size:.8rem;
+}
+.ctrl-row { margin:5px 0; }
+.ctrl-row label { display:block; margin-bottom:2px; color:#777; }
+.ctrl-row input[type=range] { width:100%; }
+.val { color:#7af; font-weight:bold; }
+.ctrl-btn {
+  background:#335; color:#dde; border:none; padding:4px 9px;
+  border-radius:4px; cursor:pointer; margin:3px 3px 3px 0; font-size:.72rem;
+}
+.ctrl-btn:hover { background:#447; }
+
+#detail-info { flex:1; overflow-y:auto; padding:13px 15px; font-size:.78rem; line-height:1.7; color:#888; }
+#detail-info h3 { color:#cce; font-size:.82rem; margin:10px 0 3px; }
+#detail-info p  { margin-bottom:6px; }
+#detail-info .hl { color:#7af; }
+
+#detail-canvas-wrap {
+  flex:1; background:#060610; position:relative; min-width:0;
+}
+#detail-canvas { display:block; cursor:grab; position:absolute; left:0; top:0; width:100%; height:100%; }
+#detail-canvas:active { cursor:grabbing; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Dipolygonid Catalog</h1>
+  <p>Complete Jitterbug transformer family · Verheyen (1989) · T₂ uses exact geometry · all types use correct axis pools with pentagram rendering</p>
+</header>
+
+<div class="layout">
+<nav id="sidebar">
+  <h2>Overview</h2>
+  <button class="nav-btn active" onclick="jumpTo('intro')">Introduction</button>
+  <button class="nav-btn"        onclick="jumpTo('taxonomy')">Taxonomy</button>
+  <h2>Dihedral D_n</h2>
+  <button class="nav-btn" onclick="jumpTo('dihedral-a')">Class A — Petrie Zigzags</button>
+  <button class="nav-btn" onclick="jumpTo('dihedral-b')">Class B — Prisms</button>
+  <h2>Tetrahedral A₄</h2>
+  <button class="nav-btn" onclick="jumpTo('tetrahedral')">T₁ · T₂ (Jitterbug)</button>
+  <h2>Octahedral S₄</h2>
+  <button class="nav-btn" onclick="jumpTo('octahedral')">O₁ · O₂ · O₃ · O₄</button>
+  <h2>Icosahedral A₅</h2>
+  <button class="nav-btn" onclick="jumpTo('ico-a')">I₁ – I₄</button>
+  <button class="nav-btn" onclick="jumpTo('ico-b')">I₅ – I₈</button>
+  <button class="nav-btn" onclick="jumpTo('ico-c')">I₉ – I₁₁</button>
+  <button class="nav-btn" onclick="jumpTo('ico-d')">I₁₂ – I₁₄ (Vampire)</button>
+  <h2>Special Types</h2>
+  <button class="nav-btn" onclick="jumpTo('regular')">Regular (5 types)</button>
+  <button class="nav-btn" onclick="jumpTo('equiradial')">Equiradial</button>
+  <button class="nav-btn" onclick="jumpTo('chiral')">Chiral Pairs</button>
+</nav>
+
+<main id="main">
+
+<section id="intro">
+  <h2 class="section-heading">Introduction</h2>
+  <div class="info-box">
+    <strong>What is a dipolygonid?</strong> A dipolygonid is the systematic generalization of Buckminster Fuller's Jitterbug.
+    Start with a <em>dipolygon</em>: two regular polygons <code>{m}</code> and <code>{n}</code> sharing a common vertex P,
+    with their planes meeting at dihedral angle θ. Replicate under finite rotation group G to get a symmetric structure
+    capable of continuous <strong>uniform motion</strong> — each polygon simultaneously translates and rotates along its
+    circumscribed cylinder axis — while preserving all symmetries.<br><br>
+    <strong>Notation:</strong> <code>(g/s){m} + (g/t){n} | θ</code>  where g = |G|, s and t are generator orders.<br><br>
+    <strong>Verheyen's result:</strong> 2 infinite dihedral classes + <strong>20 finite types</strong>
+    (2 tetrahedral · 4 octahedral · 14 icosahedral).<br><br>
+    <strong>About the 3D views:</strong> T₂ (the Jitterbug) uses <strong>exact geometry</strong> derived from the paper and
+    verified against the octahedron→cuboctahedron transformation. All other types currently show <strong>schematic</strong>
+    representations — polygon counts and symmetry groups are correct from the paper, but precise vertex coordinates
+    have not yet been derived.
+  </div>
+</section>
+
+<section id="taxonomy">
+  <h2 class="section-heading">Taxonomy at a Glance</h2>
+  <div class="info-box">
+    <table>
+      <tr style="color:#7af;"><td><strong>Group</strong></td><td><strong>Symbol</strong></td><td><strong>Order</strong></td><td><strong>Types</strong></td><td><strong>Regular?</strong></td></tr>
+      <tr><td>Dihedral</td><td>D_n</td><td>2n</td><td>2 infinite classes</td><td>—</td></tr>
+      <tr><td>Tetrahedral</td><td>A₄</td><td>12</td><td>T₁, T₂</td><td>T₂ lower half</td></tr>
+      <tr><td>Octahedral</td><td>S₄</td><td>24</td><td>O₁ – O₄</td><td>O₄</td></tr>
+      <tr><td>Icosahedral</td><td>A₅</td><td>60</td><td>I₁ – I₁₄</td><td>I₄, I₈, I₁₄</td></tr>
+    </table>
+    <br>
+    <strong>Regular:</strong> m = n and R_A = R_B → 5 total. &nbsp;
+    <strong>Equiradial:</strong> R_A = R_B, m ≠ n → exactly 1 (I₁₁). &nbsp;
+    <strong>Chiral:</strong> not self-enantiomorphous (T₂ upper half, O₃ upper half, …).
+  </div>
+</section>
+
+<section id="dihedral-a">
+  <h2 class="section-heading">Dihedral Class A — Petrie Zigzags</h2>
+  <p class="section-sub"><code>n{2} + n{2} | (k/n)·180°</code>  Non-planar polygonal zigzag lines (Petrie polygons) in D_n. At central positions all digon centers collapse onto the n-fold axis.</p>
+  <div class="card-grid" id="grid-da"></div>
+</section>
+
+<section id="dihedral-b">
+  <h2 class="section-heading">Dihedral Class B — Prisms</h2>
+  <p class="section-sub"><code>n{2} + 2{n/k} | 90°</code>  Extreme positions are rectangular prisms.</p>
+  <div class="card-grid" id="grid-db"></div>
+</section>
+
+<section id="tetrahedral">
+  <h2 class="section-heading">Tetrahedral Group A₄</h2>
+  <p class="section-sub">A₄ has order 12: 3 two-fold and 4 three-fold axes. T₂ lower half is Fuller's original Jitterbug — <strong>exact geometry verified</strong>.</p>
+  <div class="card-grid" id="grid-tet"></div>
+</section>
+
+<section id="octahedral">
+  <h2 class="section-heading">Octahedral Group S₄</h2>
+  <p class="section-sub">S₄ has order 24: 6 two-fold, 4 three-fold, 3 four-fold axes. O₄ is the only regular octahedral dipolygonid.</p>
+  <div class="card-grid" id="grid-oct"></div>
+</section>
+
+<section id="ico-a">
+  <h2 class="section-heading">Icosahedral A₅ — I₁ through I₄</h2>
+  <p class="section-sub">A₅ has order 60: 15 two-fold, 10 three-fold, 6 five-fold axes. I₄ is a regular pentagon type.</p>
+  <div class="card-grid" id="grid-ia"></div>
+</section>
+
+<section id="ico-b">
+  <h2 class="section-heading">Icosahedral A₅ — I₅ through I₈</h2>
+  <p class="section-sub">Mixed families including pentagram {5/2} star polygons. I₈ is regular.</p>
+  <div class="card-grid" id="grid-ib"></div>
+</section>
+
+<section id="ico-c">
+  <h2 class="section-heading">Icosahedral A₅ — I₉ through I₁₁</h2>
+  <p class="section-sub">Pentagon and pentagram combinations. I₁₁ is the unique equiradial non-regular type.</p>
+  <div class="card-grid" id="grid-ic"></div>
+</section>
+
+<section id="ico-d">
+  <h2 class="section-heading">Icosahedral A₅ — I₁₂ through I₁₄</h2>
+  <p class="section-sub">Triangle-heavy types. I₁₄ "Vampire" (20{3}+20{3}) named by Magnus Wenninger in 1979.</p>
+  <div class="card-grid" id="grid-id"></div>
+</section>
+
+<section id="regular">
+  <h2 class="section-heading">Regular Dipolygonids</h2>
+  <p class="section-sub">Five types with m = n and R_A = R_B (both families congruent and equiradial).</p>
+  <div class="card-grid" id="grid-reg"></div>
+</section>
+
+<section id="equiradial">
+  <h2 class="section-heading">Equiradial Dipolygonid</h2>
+  <p class="section-sub">R_A = R_B with m ≠ n — unique in the finite classification.</p>
+  <div class="card-grid" id="grid-eq"></div>
+</section>
+
+<section id="chiral">
+  <h2 class="section-heading">Notable Chiral Pairs</h2>
+  <p class="section-sub">Structures not self-enantiomorphous, existing as dextro/laevo pairs.</p>
+  <div class="card-grid" id="grid-ch"></div>
+</section>
+
+</main>
+</div>
+
+<canvas id="live-overlay"></canvas>
+
+<div id="detail-panel">
+  <div id="detail-header">
+    <div>
+      <div id="detail-title">—</div>
+      <div id="detail-formula">—</div>
+    </div>
+    <button id="close-btn">✕ Close</button>
+  </div>
+  <div id="detail-body">
+    <div id="detail-left">
+      <div id="detail-controls">
+        <div class="ctrl-row" style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;">
+          <label><input type="checkbox" id="dc-animate" checked> Animate</label>
+          <label><input type="checkbox" id="dc-faces" checked> Faces</label>
+          <label><input type="checkbox" id="dc-edges" checked> Edges</label>
+          <label><input type="checkbox" id="dc-autorot" checked> Auto-rotate</label>
+        </div>
+        <div class="ctrl-row">
+          <label>Phase: <span class="val" id="dc-phase-val">60°</span></label>
+          <input type="range" id="dc-phase" min="0" max="60" value="60" step="0.5">
+        </div>
+        <div class="ctrl-row">
+          <label>Speed: <span class="val" id="dc-speed-val">0.4</span></label>
+          <input type="range" id="dc-speed" min="0.05" max="2" value="0.4" step="0.05">
+        </div>
+        <div>
+          <button class="ctrl-btn" id="dc-oct">Octahedron</button>
+          <button class="ctrl-btn" id="dc-ico">Icosahedron</button>
+          <button class="ctrl-btn" id="dc-cubo">Cuboctahedron</button>
+        </div>
+      </div>
+      <div id="detail-info">—</div>
+    </div>
+    <div id="detail-canvas-wrap">
+      <canvas id="detail-canvas" width="410" height="250"></canvas>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+'use strict';
+
+// ─────────────────────────────────────────────────────────────
+// CATALOG DATA (from Verheyen 1989, Table 3 & 4)
+// ─────────────────────────────────────────────────────────────
+const CATALOG = [
+  // Dihedral A
+  { id:'DA3', grid:'grid-da', group:'D₃', axes:'2∼2', angle:60,    m:2, n:2, gm:3, gn:3,
+    tags:['infinite','chiral'], label:'D₃ Petrie Zigzag', formula:'3{2} + 3{2} | 60°',
+    c1:0x5577ff, c2:0x99bbff, verified:true,
+    desc:'Non-planar hexagonal zigzag (Petrie polygon). n=3 odd. Lower half: D₆D₃ symmetry, 3 coplanar digon pairs. Upper half: D₃×I, chiral pair.' },
+  { id:'DA4', grid:'grid-da', group:'D₄', axes:'2∼2', angle:45,    m:2, n:2, gm:4, gn:4,
+    tags:['infinite'], label:'D₄ Petrie Zigzag', formula:'4{2} + 4{2} | 45°',
+    c1:0x5577ff, c2:0x99bbff, verified:true,
+    desc:'Non-planar octagonal zigzag. n=4 even. D₈D₄ symmetry in both halves.' },
+  { id:'DA5', grid:'grid-da', group:'D₅', axes:'2∼2', angle:36,    m:2, n:2, gm:5, gn:5,
+    tags:['infinite','chiral'], label:'D₅ Petrie Zigzag', formula:'5{2} + 5{2} | 36°',
+    c1:0x5577ff, c2:0x99bbff, verified:true,
+    desc:'Non-planar decagonal zigzag. n=5 odd. Lower half D₁₀D₅, upper half D₅×I (chiral pair).' },
+
+  // Dihedral B
+  { id:'DB3', grid:'grid-db', group:'D₃', axes:'2∼3', angle:90, m:2, n:3, gm:3, gn:2,
+    tags:['infinite'], label:'D₃ Triangular Prism', formula:'3{2} + 2{3} | 90°',
+    c1:0x6699ff, c2:0xaaccff, verified:true,
+    desc:'Three digons + two triangles at 90°. Extreme positions: triangular prism.' },
+  { id:'DB4', grid:'grid-db', group:'D₄', axes:'2∼4', angle:90, m:2, n:4, gm:4, gn:2,
+    tags:['infinite'], label:'D₄ Square Prism', formula:'4{2} + 2{4} | 90°',
+    c1:0x6699ff, c2:0xaaccff, verified:true,
+    desc:'Four digons + two squares at 90°. Extreme positions: square prism.' },
+  { id:'DB5', grid:'grid-db', group:'D₅', axes:'2∼5', angle:90, m:2, n:5, gm:5, gn:2,
+    tags:['infinite'], label:'D₅ Pentagonal Prism', formula:'5{2} + 2{5} | 90°',
+    c1:0x6699ff, c2:0xaaccff, verified:true,
+    desc:'Five digons + two pentagons at 90°. Extreme positions: pentagonal prism.' },
+
+  // Tetrahedral
+  { id:'T1', grid:'grid-tet', group:'A₄', axes:'2∼3', angle:54.735, m:2, n:3, gm:6, gn:4,
+    tags:[], label:'T₁', formula:'6{2} + 4{3} | 54°44′08″',
+    c1:0xff8833, c2:0xffcc77, verified:true, vertices:12, edges:24,
+    desc:'Six digons (along 3 two-fold axes) + four triangles (along 4 three-fold axes). Extended group S₄A₄.' },
+  { id:'T2', grid:'grid-tet', group:'A₄', axes:'3∼3', angle:70.528, m:3, n:3, gm:4, gn:4,
+    tags:['regular','chiral'], label:'T₂ — Jitterbug', formula:'4{3} + 4{3} | 70°31′44″',
+    c1:0xff6600, c2:0xffaa33, verified:true, vertices:12, edges:24,
+    desc:'Eight equilateral triangles under A₄. The LOWER HALF (S₄A₄, self-enantiomorphous) is Fuller\'s Jitterbug — the convex phase transforming octahedron→cuboctahedron. θ = arccos(1/3) exactly.',
+    motion:'Octahedron (0°) → icosahedron (≈37.76°) → cuboctahedron (60°). Exact: h(φ)=√(8/3)·cos(φ), vertex-sharing error < 1e-15.',
+    extremePolyhedra:'Octahedron (angle=0°) · Icosahedron (angle≈37.76°) · Cuboctahedron (angle=60°)' },
+
+  // Octahedral
+  { id:'O1', grid:'grid-oct', group:'S₄', axes:'2∼3', angle:35.264, m:2, n:3, gm:12, gn:8,
+    tags:[], label:'O₁', formula:'12{2} + 8{3} | 35°15′52″',
+    c1:0x33cc77, c2:0x77ffaa, verified:true, vertices:24, edges:48,
+    desc:'Twelve digons (six 2-fold axes) + eight triangles (four 3-fold axes). S₄×I symmetry.' },
+  { id:'O2', grid:'grid-oct', group:'S₄', axes:'2∼4', angle:45, m:2, n:4, gm:12, gn:6,
+    tags:[], label:'O₂', formula:'12{2} + 6{4} | 45°',
+    c1:0x33cc77, c2:0x77ffaa, verified:true, vertices:24, edges:48,
+    desc:'Twelve digons + six squares at 45°. S₄×I symmetry. Related to cuboctahedron–rhombicuboctahedron transformation.',
+    extremePolyhedra:'Rhombicuboctahedron' },
+  { id:'O3', grid:'grid-oct', group:'S₄', axes:'3∼4', angle:54.735, m:3, n:4, gm:8, gn:6,
+    tags:[], label:'O₃', formula:'8{3} + 6{4} | 54°44′08″',
+    c1:0x33cc77, c2:0x5588ff, verified:true, vertices:24, edges:48,
+    desc:'Eight triangles (3-fold) + six squares (4-fold). S₄×I symmetry. Stuart\'s cuboctahedron transformation. The 8 rigid triangles are identical to T₂ (Jitterbug) — the 6 "squares" are the quadrilateral gaps between them, only truly square at the cuboctahedron position. During motion they deform into rhombi (equal edge lengths, changing angles), passing through parallelograms at the snub cube.',
+    motion:'Cuboctahedron → snub cube → rhombicuboctahedron',
+    extremePolyhedra:'Cuboctahedron (min) · Rhombicuboctahedron (max)' },
+  { id:'O4', grid:'grid-oct', group:'S₄', axes:'4∼4', angle:90, m:4, n:4, gm:6, gn:6,
+    tags:['regular'], label:'O₄ — Regular', formula:'6{4} + 6{4} | 90°',
+    c1:0x11ff99, c2:0x66ffcc, verified:true, vertices:24, edges:48,
+    desc:'Six pairs of squares at θ=90°. REGULAR octahedral dipolygonid. S₄×I throughout. Both halves equivalent. Central position: three mutually perpendicular squares within an octahedron.',
+    extremePolyhedra:'Cube (both extremes)' },
+
+  // I1-I4
+  { id:'I1',  grid:'grid-ia', group:'A₅', axes:'2∼3', angle:20.905, m:2, n:3, gm:30, gn:20,
+    tags:[], label:'I₁',  formula:'30{2} + 20{3} | 20°54′19″',
+    c1:0xff5577, c2:0xff99aa, verified:true, vertices:60, edges:120,
+    desc:'Thirty digons + twenty triangles. A₅×I symmetry.' },
+  { id:'I2',  grid:'grid-ia', group:'A₅', axes:'2∼5', angle:31.717, m:2, n:5, gm:30, gn:12,
+    tags:[], label:'I₂',  formula:'30{2} + 12{5} | 31°43′03″',
+    c1:0xff5577, c2:0xff99aa, verified:true, vertices:60, edges:120,
+    desc:'Thirty digons + twelve pentagons. A₅×I symmetry.' },
+  { id:'I3',  grid:'grid-ia', group:'A₅', axes:'3∼5', angle:37.377, m:3, n:5, gm:20, gn:12,
+    tags:[], label:'I₃',  formula:'20{3} + 12{5} | 37°22′39″',
+    c1:0xff5577, c2:0xff99aa, verified:true, vertices:60, edges:120,
+    desc:'Twenty triangles + twelve pentagons. A₅×I. Icosidodecahedron face-transformation (Clinton).',
+    extremePolyhedra:'Icosidodecahedron (min) · Rhombicosidodecahedron (max)' },
+  { id:'I4',  grid:'grid-ia', group:'A₅', axes:'5∼5', angle:63.435, m:5, n:5, gm:12, gn:12,
+    tags:['regular'], label:'I₄ — Regular', formula:'12{5} + 12{5} | 63°26′06″',
+    c1:0xff2255, c2:0xff6688, verified:true, vertices:60, edges:120,
+    desc:'Twelve pentagon pairs. REGULAR. A₅×I. Central position: pairs form decagons of an icosidodecahedron.',
+    extremePolyhedra:'Dodecahedron' },
+
+  // I5-I8
+  { id:'I5',  grid:'grid-ib', group:'A₅', axes:'2∼3', angle:69.095, m:2, n:3, gm:30, gn:20,
+    tags:[], label:'I₅',  formula:'30{2} + 20{3} | 69°05′42″',
+    c1:0xdd33bb, c2:0xff77dd, verified:true, vertices:60, edges:120,
+    desc:'Second 2∼3 icosahedral type. Supplement angle to I₁.' },
+  { id:'I6',  grid:'grid-ib', group:'A₅', axes:'2∼5', angle:58.283, m:2, n:5, gm:30, gn:12,
+    tags:[], label:'I₆',  formula:'30{2} + 12{5/2} | 58°16′57″',
+    c1:0xdd33bb, c2:0xff77dd, verified:true, vertices:60, edges:120, star_n:true,
+    desc:'Thirty digons + twelve pentagrams {5/2}. A₅×I.' },
+  { id:'I7',  grid:'grid-ib', group:'A₅', axes:'3∼5', angle:79.188, m:3, n:5, gm:20, gn:12,
+    tags:[], label:'I₇',  formula:'20{3} + 12{5/2} | 79°11′16″',
+    c1:0xdd33bb, c2:0xff77dd, verified:true, vertices:60, edges:120, star_n:true,
+    desc:'Twenty triangles + twelve pentagrams. A₅×I.' },
+  { id:'I8',  grid:'grid-ib', group:'A₅', axes:'5∼5', angle:63.435, m:5, n:5, gm:12, gn:12,
+    tags:['regular'], label:'I₈ — Regular (pentagram)', formula:'12{5/2} + 12{5/2} | 63°26′06″',
+    c1:0xcc2299, c2:0xff66cc, verified:true, vertices:60, edges:120, star_m:true, star_n:true,
+    desc:'Twelve pentagram {5/2} pairs. REGULAR. Shares axes with I₄; pentagons replaced by pentagrams.',
+    extremePolyhedra:'Great dodecahedron' },
+
+  // I9-I11
+  { id:'I9',  grid:'grid-ic', group:'A₅', axes:'2∼5', angle:58.283, m:2, n:5, gm:30, gn:12,
+    tags:[], label:'I₉',  formula:'30{2} + 12{5} | 58°16′57″',
+    c1:0xaa66ff, c2:0xcc99ff, verified:true, vertices:60, edges:120,
+    desc:'Third 2∼5 type. Same angle as I₆ but regular pentagons.' },
+  { id:'I10', grid:'grid-ic', group:'A₅', axes:'2∼5', angle:31.717, m:2, n:5, gm:30, gn:12,
+    tags:[], label:'I₁₀', formula:'30{2} + 12{5/2} | 31°43′03″',
+    c1:0xaa66ff, c2:0xcc99ff, verified:true, vertices:60, edges:120, star_n:true,
+    desc:'Fourth 2∼5 type. Same angle as I₂ but with pentagrams.' },
+  { id:'I11', grid:'grid-ic', group:'A₅', axes:'5∼5', angle:63.435, m:5, n:5, gm:12, gn:12,
+    tags:['equiradial'], label:'I₁₁ — Equiradial', formula:'12{5} + 12{5/2} | 63°26′06″',
+    c1:0x33ffaa, c2:0x88ffcc, verified:true, vertices:60, edges:120, star_n:true,
+    desc:'Unique EQUIRADIAL non-regular finite dipolygonid. Pentagon + pentagram families equidistant from center. Coplanar pairs when R_A=R_B.' },
+
+  // I12-I14
+  { id:'I12', grid:'grid-id', group:'A₅', axes:'3∼5', angle:79.188, m:3, n:5, gm:20, gn:12,
+    tags:[], label:'I₁₂', formula:'20{3} + 12{5} | 79°11′16″',
+    c1:0xff3344, c2:0xff7788, verified:true, vertices:60, edges:120,
+    desc:'Twenty triangles + twelve pentagons at 79°11′. A₅×I symmetry.' },
+  { id:'I13', grid:'grid-id', group:'A₅', axes:'3∼5', angle:37.377, m:3, n:5, gm:20, gn:12,
+    tags:[], label:'I₁₃', formula:'20{3} + 12{5/2} | 37°22′39″',
+    c1:0xff3344, c2:0xff7788, verified:true, vertices:60, edges:120, star_n:true,
+    desc:'Twenty triangles + twelve pentagrams at 37°22′. A₅×I symmetry.' },
+  { id:'I14', grid:'grid-id', group:'A₅', axes:'3∼3', angle:41.810, m:3, n:3, gm:20, gn:20,
+    tags:['regular'], label:'I₁₄ — Vampire', formula:'20{3} + 20{3} | 41°48′37″',
+    c1:0xff1122, c2:0xff5566, verified:true, vertices:60, edges:120,
+    desc:'Forty equilateral triangles — the most complex regular icosahedral dipolygonid. Named "Verheyen\'s Vampire" by Magnus Wenninger (1979). A₅×I throughout. Central positions: pairs form hexagons of the small dodecahemicosahedron.',
+    extremePolyhedra:'Icosahedral star forms' },
+
+  // Regular summary
+  { id:'RT2',  grid:'grid-reg', group:'A₄ (lower)', axes:'3∼3', angle:70.528, m:3, n:3, gm:4, gn:4,
+    tags:['regular'], label:'Jitterbug — T₂ lower', formula:'4{3}+4{3} | 70°31′44″ (lower half)',
+    c1:0xff9900, c2:0xffcc44, verified:true,
+    desc:'Convex phase only. Self-enantiomorphous (S₄A₄). Fuller\'s original Jitterbug. Uses exact geometry.',
+    extremePolyhedra:'Octahedron → cuboctahedron' },
+  { id:'RO4',  grid:'grid-reg', group:'S₄', axes:'4∼4', angle:90, m:4, n:4, gm:6, gn:6,
+    tags:['regular'], label:'Regular Octahedral — O₄', formula:'6{4}+6{4} | 90°',
+    c1:0x11ff99, c2:0x66ffcc, verified:true,
+    desc:'Six square pairs. S₄×I throughout. θ=90° makes both halves equivalent.', extremePolyhedra:'Cube' },
+  { id:'RI4',  grid:'grid-reg', group:'A₅', axes:'5∼5', angle:63.435, m:5, n:5, gm:12, gn:12,
+    tags:['regular'], label:'Regular Pentagon — I₄', formula:'12{5}+12{5} | 63°26′06″',
+    c1:0xff2255, c2:0xff6688, verified:true,
+    desc:'Twelve pentagon pairs. A₅×I. Central: decagons of an icosidodecahedron.', extremePolyhedra:'Dodecahedron' },
+  { id:'RI8',  grid:'grid-reg', group:'A₅', axes:'5∼5', angle:63.435, m:5, n:5, gm:12, gn:12,
+    tags:['regular'], label:'Regular Pentagram — I₈', formula:'12{5/2}+12{5/2} | 63°26′06″',
+    c1:0xcc2299, c2:0xff66cc, verified:true, star_m:true, star_n:true,
+    desc:'Twelve pentagram pairs. A₅×I. All I₄ results hold with pentagrams.', extremePolyhedra:'Great dodecahedron' },
+  { id:'RI14', grid:'grid-reg', group:'A₅', axes:'3∼3', angle:41.810, m:3, n:3, gm:20, gn:20,
+    tags:['regular'], label:'Vampire — I₁₄', formula:'20{3}+20{3} | 41°48′37″',
+    c1:0xff1122, c2:0xff5566, verified:true,
+    desc:'Twenty triangle pairs. Most complex regular dipolygonid. A₅×I.', extremePolyhedra:'Icosahedral star forms' },
+
+  // Equiradial
+  { id:'EQ1', grid:'grid-eq', group:'A₅', axes:'5∼5', angle:63.435, m:5, n:5, gm:12, gn:12,
+    tags:['equiradial'], label:'Pentagon-Pentagram Equiradial', formula:'12{5}+12{5/2} | 63°26′06″',
+    c1:0x33ffaa, c2:0x88ffcc, verified:true, vertices:60, edges:120, star_n:true,
+    desc:'Unique equiradial non-regular finite dipolygonid. Pentagon and pentagram families equidistant from center.' },
+
+  // Chiral
+  { id:'CH1', grid:'grid-ch', group:'A₄ (upper)', axes:'3∼3', angle:70.528, m:3, n:3, gm:4, gn:4,
+    tags:['chiral'], label:'Jitterbug chiral pair', formula:'4{3}+4{3} | 70°31′44″ (upper half)',
+    c1:0xff8844, c2:0xffcc88, verified:true, vertices:24, edges:48,
+    desc:'Upper half of T₂ — not self-enantiomorphous. Dextro+laevo pair, each A₄×I; together S₄×I.' },
+  { id:'CH2', grid:'grid-ch', group:'S₄ (upper)', axes:'3∼4', angle:54.735, m:3, n:4, gm:8, gn:6,
+    tags:['chiral'], label:'Triangle-Square chiral pair', formula:'8{3}+6{4} | 54°44′08″ (upper half)',
+    c1:0xff8844, c2:0xffcc88, verified:true, vertices:48, edges:96,
+    desc:'Upper half of O₃. Eight coplanar triangle pairs + six coplanar square pairs.' },
+];
+
+// ─────────────────────────────────────────────────────────────
+// THREE.JS — 3 renderers total
+// ─────────────────────────────────────────────────────────────
+const offCanvas = document.createElement('canvas');
+offCanvas.width = 256; offCanvas.height = 256;
+const offRenderer = new THREE.WebGLRenderer({ canvas: offCanvas, antialias: true, preserveDrawingBuffer: true });
+offRenderer.setPixelRatio(1);
+offRenderer.setSize(256, 256, false);
+offRenderer.setClearColor(0x060610, 1);
+
+const liveCanvas = document.getElementById('live-overlay');
+liveCanvas.width = 256; liveCanvas.height = 256;
+const liveRenderer = new THREE.WebGLRenderer({ canvas: liveCanvas, antialias: true });
+liveRenderer.setPixelRatio(1);
+liveRenderer.setSize(256, 256, false);
+liveRenderer.setClearColor(0x060610, 1);
+Object.assign(liveCanvas.style, { pointerEvents:'none', display:'none', position:'fixed', zIndex:'300' });
+
+const detailCanvas = document.getElementById('detail-canvas');
+const detailRenderer = new THREE.WebGLRenderer({ canvas: detailCanvas, antialias: true });
+detailRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+detailRenderer.setSize(410, 250, false);
+detailRenderer.setClearColor(0x060610, 1);
+
+function resizeDetailRenderer() {
+  const wrap = document.getElementById('detail-canvas-wrap');
+  if (!wrap) return;
+  const w = wrap.clientWidth;
+  const h = wrap.clientHeight;
+  if (w < 1 || h < 1) return;
+  detailCanvas.width = w;
+  detailCanvas.height = h;
+  detailRenderer.setSize(w, h, false);
+  detCam.aspect = w / h;
+  detCam.updateProjectionMatrix();
+}
+
+function makeScene() {
+  const s = new THREE.Scene();
+  s.add(new THREE.AmbientLight(0xffffff, 0.55));
+  const d = new THREE.DirectionalLight(0xffffff, 0.9); d.position.set(4,6,5); s.add(d);
+  const d2 = new THREE.DirectionalLight(0x6688ff, 0.3); d2.position.set(-4,-3,3); s.add(d2);
+  return s;
+}
+const offScene  = makeScene();  const offGroup  = new THREE.Group(); offScene.add(offGroup);
+const liveScene = makeScene();  const liveGroup = new THREE.Group(); liveScene.add(liveGroup);
+const detScene  = makeScene();  const detGroup  = new THREE.Group(); detScene.add(detGroup);
+
+function makeCamera(w, h) {
+  const c = new THREE.PerspectiveCamera(42, w/h, 0.1, 100);
+  c.position.set(0, 0, w > 300 ? 8.5 : 6.5);
+  return c;
+}
+const offCam  = makeCamera(256, 256);
+const liveCam = makeCamera(256, 256);
+const detCam  = makeCamera(410, 250);
+
+// ─────────────────────────────────────────────────────────────
+// JITTERBUG GEOMETRY (T2) — exact, from reference HTML + Verheyen
+// ─────────────────────────────────────────────────────────────
+// EXACT JITTERBUG GEOMETRY — derived and verified from first principles
+//
+// The 8 rigid equilateral panels come from the cuboctahedron's 8 triangular faces.
+// Cuboctahedron vertices = permutations of (0, ±√2, ±√2) — scaled so edge = 2.
+// The 8 triangular faces use one vertex from each of three coordinate-axis groups.
+//
+// Motion parameter φ (phi): 0 → cuboctahedron, π/3 → octahedron.
+// Face center height: h(φ) = √(8/3)·cos(φ)   [EXACT closed form]
+// Each face rotates by ±φ around its normal (3-fold axis), with directions from
+// bipartite 2-coloring of the adjacency graph: DIRS = [+1,-1,-1,+1,-1,+1,+1,-1]
+//
+// Vertex sharing error < 1e-15 at all φ (verified numerically).
+// UI angle: 0° = octahedron, 60° = cuboctahedron.
+// UI angleDeg maps to φ = (60 - angleDeg) * π/180.
+// So φ=π/3 at oct (angleDeg=0), φ=0 at cubo (angleDeg=60).
+//
+// Icosahedron angle: φ_ico = arccos(√((2 + 3φ_gold)/8)) ≈ 22.24° in φ-space
+//   which gives angleDeg = 60 - 22.24 ≈ 37.76° in UI.
+//   where φ_gold = (1+√5)/2.  All 30 "edges" (24 face + 6 gap) = 2.0 there.
+
+const JB_H0 = Math.sqrt(8/3);   // face center height at cuboctahedron (φ=0)
+
+// 8 face normals (tetrahedral 3-fold axes, all ±1/√3 combinations)
+const JB_NORMALS = [
+  new THREE.Vector3( 1, 1, 1).normalize(),  // face 0
+  new THREE.Vector3(-1, 1, 1).normalize(),  // face 1
+  new THREE.Vector3( 1, 1,-1).normalize(),  // face 2
+  new THREE.Vector3(-1, 1,-1).normalize(),  // face 3
+  new THREE.Vector3( 1,-1, 1).normalize(),  // face 4
+  new THREE.Vector3(-1,-1, 1).normalize(),  // face 5
+  new THREE.Vector3( 1,-1,-1).normalize(),  // face 6
+  new THREE.Vector3(-1,-1,-1).normalize(),  // face 7
+];
+
+// Rotation directions from bipartite 2-coloring of adjacency graph.
+// Adjacent faces (sharing a vertex) MUST rotate in opposite directions.
+// This is NOT simple alternation — it comes from graph coloring.
+const JB_DIRS = [1, -1, -1, 1, -1, 1, 1, -1];
+
+// In-plane vectors for each face's 3 vertices, relative to face center.
+// Derived from cuboctahedron vertices scaled to edge = 2, then subtracting h0·normal.
+// These are constant (rigid panels).
+const S2 = Math.sqrt(2);   // cuboctahedron scale factor for edge=2
+// Cuboctahedron vertices (permutations of (0,±S2,±S2)):
+const CUBO_V = [
+  [0,S2,S2],[0,S2,-S2],[0,-S2,S2],[0,-S2,-S2],
+  [S2,0,S2],[S2,0,-S2],[-S2,0,S2],[-S2,0,-S2],
+  [S2,S2,0],[S2,-S2,0],[-S2,S2,0],[-S2,-S2,0],
+];
+// The 8 triangular faces of the cuboctahedron (one vertex from each axis group)
+const JB_FACE_IDX = [
+  [0,4,8],[0,6,10],[1,5,8],[1,7,10],[2,4,9],[2,6,11],[3,5,9],[3,7,11]
+];
+const JB_INPLANE = JB_FACE_IDX.map((f, fi) => {
+  const n = JB_NORMALS[fi];
+  return f.map(vi => {
+    const v = new THREE.Vector3(CUBO_V[vi][0], CUBO_V[vi][1], CUBO_V[vi][2]);
+    return v.sub(n.clone().multiplyScalar(JB_H0));
+  });
+});
+
+// Exact icosahedron angle: φ_ico = arccos(√((2+3φ_gold)/8)), converted to UI degrees
+const JB_PHI_GOLDEN = (1 + Math.sqrt(5)) / 2;
+const JB_PHI_ICO_RAD = Math.acos(Math.sqrt((2 + 3*JB_PHI_GOLDEN) / 8));
+const ICOSA_ANGLE = 60 - JB_PHI_ICO_RAD * 180 / Math.PI;  // ≈ 37.76° in UI (0=oct, 60=cubo)
+
+function buildJitterbug(group, angleDeg, showFaces, showEdges, color) {
+  clearGroup(group);
+  // UI angle: 0=octahedron, 60=cuboctahedron → φ = (60-angleDeg)*π/180
+  // (φ=π/3 at oct, φ=0 at cubo, so h=h₀·cos(φ) is min at oct, max at cubo)
+  const phi = (60 - angleDeg) * Math.PI / 180;
+  const h   = JB_H0 * Math.cos(phi);
+  const faceColor = color || 0xff6600;
+  const edgeColor = 0xffffff;
+
+  JB_NORMALS.forEach((n, fi) => {
+    const phi_signed = JB_DIRS[fi] * phi;
+    const q = new THREE.Quaternion().setFromAxisAngle(n, phi_signed);
+    const center = n.clone().multiplyScalar(h);
+
+    // Rotate in-plane vectors and add face center
+    const verts = JB_INPLANE[fi].map(ip =>
+      ip.clone().applyQuaternion(q).add(center)
+    );
+    const [v0, v1, v2] = verts;
+
+    const faceGroup = new THREE.Group();
+    if (showEdges) {
+      const pts = [v0, v1, v2, v0];
+      const geo = new THREE.BufferGeometry().setFromPoints(pts);
+      faceGroup.add(new THREE.Line(geo, new THREE.LineBasicMaterial({ color: edgeColor })));
+    }
+    if (showFaces) {
+      const geo = new THREE.BufferGeometry();
+      const arr = new Float32Array([
+        v0.x,v0.y,v0.z, v1.x,v1.y,v1.z, v2.x,v2.y,v2.z
+      ]);
+      geo.setAttribute('position', new THREE.BufferAttribute(arr, 3));
+      geo.computeVertexNormals();
+      faceGroup.add(new THREE.Mesh(geo, new THREE.MeshStandardMaterial({
+        color: faceColor, side: THREE.DoubleSide, transparent: true, opacity: 0.72, roughness: 0.4
+      })));
+    }
+    group.add(faceGroup);
+  });
+}
+
+// ─────────────────────────────────────────────────────────────
+// O₃ EXACT GEOMETRY — Stuart's cuboctahedron transformation
+// ─────────────────────────────────────────────────────────────
+// 8{3} + 6{4}: the 14 faces of the cuboctahedron as rigid panels.
+// Triangles rotate exactly like the Jitterbug. Square vertex positions
+// are derived from triangle vertex positions via vertex sharing.
+// The squares deform from squares into rhombi during the motion
+// (through the snub cube at an intermediate angle).
+
+// Build a vertex lookup: for each global vertex index, which triangle face/vertex?
+const O3_VERT_TRI = {};
+for (let tfi=0; tfi<8; tfi++) {
+  for (let vi=0; vi<3; vi++) {
+    const gvi = JB_FACE_IDX[tfi][vi];
+    if (!O3_VERT_TRI[gvi]) O3_VERT_TRI[gvi] = [];
+    O3_VERT_TRI[gvi].push({tfi, vi});
+  }
+}
+
+// Square faces of the cuboctahedron
+const O3_SQ_FACES = [
+  [4,8,5,9],     // axis [1,0,0]
+  [6,10,7,11],   // axis [-1,0,0]
+  [0,8,1,10],    // axis [0,1,0]
+  [2,9,3,11],    // axis [0,-1,0]
+  [0,4,2,6],     // axis [0,0,1]
+  [1,5,3,7],     // axis [0,0,-1]
+];
+
+function o3TriVertPos(gvi, phi) {
+  // Compute where cuboctahedron vertex gvi goes after triangle rotation by phi
+  const t = O3_VERT_TRI[gvi][0];
+  const n = JB_NORMALS[t.tfi];
+  const h = JB_H0 * Math.cos(phi);
+  const q = new THREE.Quaternion().setFromAxisAngle(n, JB_DIRS[t.tfi] * phi);
+  return JB_INPLANE[t.tfi][t.vi].clone().applyQuaternion(q).add(n.clone().multiplyScalar(h));
+}
+
+function buildO3(group, angleDeg, showFaces, showEdges, c1, c2) {
+  clearGroup(group);
+  const phi = (60 - angleDeg) * Math.PI / 180;
+
+  // 1. Build triangle faces (same as Jitterbug)
+  const h = JB_H0 * Math.cos(phi);
+  JB_NORMALS.forEach((n, fi) => {
+    const q = new THREE.Quaternion().setFromAxisAngle(n, JB_DIRS[fi] * phi);
+    const center = n.clone().multiplyScalar(h);
+    const verts = JB_INPLANE[fi].map(ip => ip.clone().applyQuaternion(q).add(center));
+
+    if (showEdges) {
+      const geo = new THREE.BufferGeometry().setFromPoints([...verts, verts[0]]);
+      group.add(new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0xffffff, transparent:true, opacity:0.85 })));
+    }
+    if (showFaces) {
+      const geo = new THREE.BufferGeometry();
+      const arr = new Float32Array([
+        verts[0].x,verts[0].y,verts[0].z, verts[1].x,verts[1].y,verts[1].z, verts[2].x,verts[2].y,verts[2].z
+      ]);
+      geo.setAttribute('position', new THREE.BufferAttribute(arr, 3));
+      geo.computeVertexNormals();
+      group.add(new THREE.Mesh(geo, new THREE.MeshStandardMaterial({
+        color: c1 || 0x33cc77, side: THREE.DoubleSide, transparent: true, opacity: 0.65, roughness: 0.4
+      })));
+    }
+  });
+
+  // 2. Build square faces from triangle-derived vertex positions
+  for (const sqVerts of O3_SQ_FACES) {
+    const verts = sqVerts.map(gvi => o3TriVertPos(gvi, phi));
+
+    if (showEdges) {
+      const geo = new THREE.BufferGeometry().setFromPoints([...verts, verts[0]]);
+      group.add(new THREE.Line(geo, new THREE.LineBasicMaterial({ color: 0xffffff, transparent:true, opacity:0.85 })));
+    }
+    if (showFaces) {
+      // Triangulate along the shorter diagonal for correct rhombus fill
+      const d02 = verts[0].distanceTo(verts[2]);
+      const d13 = verts[1].distanceTo(verts[3]);
+      let arr;
+      if (d02 <= d13) {
+        arr = new Float32Array([
+          verts[0].x,verts[0].y,verts[0].z, verts[1].x,verts[1].y,verts[1].z, verts[2].x,verts[2].y,verts[2].z,
+          verts[0].x,verts[0].y,verts[0].z, verts[2].x,verts[2].y,verts[2].z, verts[3].x,verts[3].y,verts[3].z,
+        ]);
+      } else {
+        arr = new Float32Array([
+          verts[0].x,verts[0].y,verts[0].z, verts[1].x,verts[1].y,verts[1].z, verts[3].x,verts[3].y,verts[3].z,
+          verts[1].x,verts[1].y,verts[1].z, verts[2].x,verts[2].y,verts[2].z, verts[3].x,verts[3].y,verts[3].z,
+        ]);
+      }
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.BufferAttribute(arr, 3));
+      geo.computeVertexNormals();
+      group.add(new THREE.Mesh(geo, new THREE.MeshStandardMaterial({
+        color: c2 || 0x5588ff, side: THREE.DoubleSide, transparent: true, opacity: 0.7, roughness: 0.4
+      })));
+    }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// I₃ & I₁₄ GEOMETRY — icosidodecahedron / icosahedral face mechanism
+// ─────────────────────────────────────────────────────────────
+// Built from the icosahedron: 20 faces → 30 edge midpoints = icosidodecahedron vertices.
+// Each icosahedron face defines a triangle (from 3 edge midpoints).
+// Pentagons form around each icosahedron vertex (5 surrounding edge midpoints).
+// Rotation uses BFS coloring on the icosahedron face adjacency graph.
+
+const I3_DATA = (() => {
+  const P = (1+Math.sqrt(5))/2;
+  const IV = [
+    [0,1,P],[0,-1,P],[0,1,-P],[0,-1,-P],
+    [1,P,0],[-1,P,0],[1,-P,0],[-1,-P,0],
+    [P,0,1],[-P,0,1],[P,0,-1],[-P,0,-1]
+  ];
+  // Edges
+  const IE=[];
+  for(let i=0;i<12;i++)for(let j=i+1;j<12;j++){
+    if(Math.abs(IV[i].reduce((s,v,k)=>s+(v-IV[j][k])**2,0)-4)<0.5) IE.push([i,j]);
+  }
+  // Faces
+  const fs=new Set();
+  for(let i=0;i<12;i++){
+    const nb=IE.filter(e=>e[0]===i||e[1]===i).map(e=>e[0]===i?e[1]:e[0]);
+    for(let a=0;a<nb.length;a++)for(let b=a+1;b<nb.length;b++){
+      if(IE.some(e=>(e[0]===nb[a]&&e[1]===nb[b])||(e[0]===nb[b]&&e[1]===nb[a]))){
+        const s=[i,nb[a],nb[b]].sort((a,b)=>a-b); fs.add(s.join(','));
+      }
+    }
+  }
+  const IF=[...fs].map(s=>s.split(',').map(Number));
+
+  // ID vertices = edge midpoints
+  const IDV = IE.map(([i,j])=>[
+    (IV[i][0]+IV[j][0])/2,(IV[i][1]+IV[j][1])/2,(IV[i][2]+IV[j][2])/2
+  ]);
+
+  // ID triangles: for each ico face, find its 3 edge midpoints
+  const tris = IF.map(f => {
+    const tv=[];
+    const edges=[[f[0],f[1]],[f[1],f[2]],[f[0],f[2]]];
+    for(const[a,b]of edges){
+      tv.push(IE.findIndex(e=>(e[0]===a&&e[1]===b)||(e[0]===b&&e[1]===a)));
+    }
+    return tv;
+  });
+
+  // Triangle data (normals, heights, in-plane vectors)
+  const triData = tris.map(f=>{
+    const c=[0,0,0];
+    for(const vi of f){c[0]+=IDV[vi][0]/3;c[1]+=IDV[vi][1]/3;c[2]+=IDV[vi][2]/3;}
+    const h=Math.sqrt(c[0]**2+c[1]**2+c[2]**2);
+    const n=c.map(x=>x/h);
+    const ip=f.map(vi=>[IDV[vi][0]-h*n[0],IDV[vi][1]-h*n[1],IDV[vi][2]-h*n[2]]);
+    return {face:f,normal:n,h0:h,inplane:ip};
+  });
+
+  // Face adjacency + BFS coloring for rotation directions
+  const adj=IF.map(()=>[]);
+  for(let i=0;i<20;i++)for(let j=i+1;j<20;j++){
+    if(IF[i].filter(v=>IF[j].includes(v)).length===2){adj[i].push(j);adj[j].push(i);}
+  }
+  const dirs=new Array(20).fill(0);
+  dirs[0]=1;
+  const q=[0],vis=new Set([0]);
+  while(q.length>0){const i=q.shift();for(const j of adj[i]){if(!vis.has(j)){dirs[j]=-dirs[i];vis.add(j);q.push(j);}}}
+
+  // Primary triangle per vertex (for consistent position lookup)
+  const vertPrimary={};
+  for(let fi=0;fi<20;fi++)for(let vi=0;vi<3;vi++){
+    const gvi=tris[fi][vi];
+    if(!(gvi in vertPrimary)) vertPrimary[gvi]={fi,vi};
+  }
+
+  // Pentagons: 5 edge midpoints around each icosahedron vertex
+  const pents=[];
+  for(let iv=0;iv<12;iv++){
+    const eis=[];
+    for(let ei=0;ei<IE.length;ei++){if(IE[ei][0]===iv||IE[ei][1]===iv)eis.push(ei);}
+    const cn=Math.sqrt(IV[iv][0]**2+IV[iv][1]**2+IV[iv][2]**2);
+    const ax=IV[iv].map(x=>x/cn);
+    const ref=Math.abs(ax[1])<0.9?[0,1,0]:[1,0,0];
+    const e1=[ref[1]*ax[2]-ref[2]*ax[1],ref[2]*ax[0]-ref[0]*ax[2],ref[0]*ax[1]-ref[1]*ax[0]];
+    const e1n=Math.sqrt(e1[0]**2+e1[1]**2+e1[2]**2);
+    const e1u=e1.map(x=>x/e1n);
+    const e2=[ax[1]*e1u[2]-ax[2]*e1u[1],ax[2]*e1u[0]-ax[0]*e1u[2],ax[0]*e1u[1]-ax[1]*e1u[0]];
+    eis.sort((a,b)=>{
+      const va=IDV[a],vb=IDV[b];
+      return Math.atan2(va[0]*e2[0]+va[1]*e2[1]+va[2]*e2[2],va[0]*e1u[0]+va[1]*e1u[1]+va[2]*e1u[2])
+           - Math.atan2(vb[0]*e2[0]+vb[1]*e2[1]+vb[2]*e2[2],vb[0]*e1u[0]+vb[1]*e1u[1]+vb[2]*e1u[2]);
+    });
+    pents.push(eis);
+  }
+
+  // All 60 icosidodecahedron edges (distance = 1 between IDV vertices)
+  const edges=[];
+  for(let i=0;i<IDV.length;i++)for(let j=i+1;j<IDV.length;j++){
+    if(Math.abs(IDV[i].reduce((s,v,k)=>s+(v-IDV[j][k])**2,0)-1)<0.1) edges.push([i,j]);
+  }
+
+  return {IDV,tris,triData,dirs,vertPrimary,pents,edges};
+})();
+
+function i3VertPos(gvi, phi) {
+  const p=I3_DATA.vertPrimary[gvi];
+  const td=I3_DATA.triData[p.fi];
+  const h=td.h0*Math.cos(phi);
+  const n=new THREE.Vector3(td.normal[0],td.normal[1],td.normal[2]);
+  const ip=new THREE.Vector3(td.inplane[p.vi][0],td.inplane[p.vi][1],td.inplane[p.vi][2]);
+  const q=new THREE.Quaternion().setFromAxisAngle(n,I3_DATA.dirs[p.fi]*phi);
+  return ip.applyQuaternion(q).add(n.multiplyScalar(h));
+}
+
+function buildI3(group, angleDeg, showFaces, showEdges, c1, c2) {
+  clearGroup(group);
+  const phi=(60-angleDeg)*Math.PI/180;
+  const sc=0.65; // scale to fit view
+
+  // 20 triangles
+  for(let fi=0;fi<20;fi++){
+    const verts=I3_DATA.tris[fi].map(gvi=>{const v=i3VertPos(gvi,phi);return new THREE.Vector3(v.x*sc,v.y*sc,v.z*sc);});
+    if(showEdges){
+      group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([...verts,verts[0]]),
+        new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:0.85})));
+    }
+    if(showFaces){
+      const a=new Float32Array([verts[0].x,verts[0].y,verts[0].z,verts[1].x,verts[1].y,verts[1].z,verts[2].x,verts[2].y,verts[2].z]);
+      const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(a,3));g.computeVertexNormals();
+      group.add(new THREE.Mesh(g,new THREE.MeshStandardMaterial({color:c1||0xff5577,side:THREE.DoubleSide,transparent:true,opacity:0.6,roughness:0.4})));
+    }
+  }
+
+  // 12 pentagons from vertex positions
+  for(const pent of I3_DATA.pents){
+    const verts=pent.map(gvi=>{const v=i3VertPos(gvi,phi);return new THREE.Vector3(v.x*sc,v.y*sc,v.z*sc);});
+    if(showEdges){
+      group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([...verts,verts[0]]),
+        new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:0.85})));
+    }
+    if(showFaces){
+      const fl=[];
+      for(let i=1;i<4;i++) fl.push(verts[0].x,verts[0].y,verts[0].z,verts[i].x,verts[i].y,verts[i].z,verts[i+1].x,verts[i+1].y,verts[i+1].z);
+      const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(fl,3));g.computeVertexNormals();
+      group.add(new THREE.Mesh(g,new THREE.MeshStandardMaterial({color:c2||0xff99aa,side:THREE.DoubleSide,transparent:true,opacity:0.45,roughness:0.4})));
+    }
+  }
+}
+
+// I₁₄ Vampire: 20{3}+20{3} — two families of 20 equilateral triangles
+// on the same 10 three-fold axes, counter-rotating.
+// Family A uses dirs[fi]*phi, Family B uses -dirs[fi]*phi.
+// Both families are rigid equilateral triangles at all angles.
+// At φ=0 they overlap; as φ increases they separate into two interpenetrating sets.
+
+function buildI14(group, angleDeg, showFaces, showEdges, c1, c2) {
+  clearGroup(group);
+  const phi=(60-angleDeg)*Math.PI/180;
+  const sc=0.65;
+
+  function drawFamily(dirMult, color, opacity) {
+    for(let fi=0;fi<20;fi++){
+      const td=I3_DATA.triData[fi];
+      const h=td.h0*Math.cos(phi);
+      const n=new THREE.Vector3(td.normal[0],td.normal[1],td.normal[2]);
+      const rotAngle = dirMult * I3_DATA.dirs[fi] * phi;
+      const q=new THREE.Quaternion().setFromAxisAngle(n, rotAngle);
+      const verts=td.inplane.map(ip=>{
+        const v=new THREE.Vector3(ip[0],ip[1],ip[2]).applyQuaternion(q);
+        v.add(n.clone().multiplyScalar(h));
+        return new THREE.Vector3(v.x*sc,v.y*sc,v.z*sc);
+      });
+      if(showEdges){
+        group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([...verts,verts[0]]),
+          new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:0.85})));
+      }
+      if(showFaces){
+        const a=new Float32Array([verts[0].x,verts[0].y,verts[0].z,verts[1].x,verts[1].y,verts[1].z,verts[2].x,verts[2].y,verts[2].z]);
+        const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(a,3));g.computeVertexNormals();
+        group.add(new THREE.Mesh(g,new THREE.MeshStandardMaterial({color,side:THREE.DoubleSide,transparent:true,opacity,roughness:0.4})));
+      }
+    }
+  }
+
+  drawFamily(1, c1||0xff1122, 0.6);   // Family A
+  drawFamily(-1, c2||0xff5566, 0.45);  // Family B (opposite rotation)
+}
+
+// ─────────────────────────────────────────────────────────────
+// I₄/I₈/I₁₁ GEOMETRY — dodecahedron face mechanism (5∼5 types)
+// ─────────────────────────────────────────────────────────────
+// 12 pentagonal faces of the dodecahedron, duplicated into two families
+// that counter-rotate around their five-fold axes.
+// I₄: both as {5}, I₈: both as {5/2}, I₁₁: A as {5}, B as {5/2}.
+
+const I4_DATA = (() => {
+  const P=(1+Math.sqrt(5))/2;
+  const DV=[
+    [1,1,1],[1,1,-1],[1,-1,1],[1,-1,-1],[-1,1,1],[-1,1,-1],[-1,-1,1],[-1,-1,-1],
+    [0,1/P,P],[0,1/P,-P],[0,-1/P,P],[0,-1/P,-P],
+    [1/P,P,0],[1/P,-P,0],[-1/P,P,0],[-1/P,-P,0],
+    [P,0,1/P],[P,0,-1/P],[-P,0,1/P],[-P,0,-1/P],
+  ];
+  const DE=[];
+  const edgeLen=2/P;
+  for(let i=0;i<20;i++)for(let j=i+1;j<20;j++){
+    if(Math.abs(Math.sqrt(DV[i].reduce((s,v,k)=>s+(v-DV[j][k])**2,0))-edgeLen)<0.01) DE.push([i,j]);
+  }
+  const dadj=DV.map(()=>[]);
+  for(const[i,j]of DE){dadj[i].push(j);dadj[j].push(i);}
+  // Find pentagonal faces
+  const fSet=new Set(), faces=[];
+  for(let s=0;s<20;s++){
+    for(const n1 of dadj[s])for(const n2 of dadj[n1]){
+      if(n2===s)continue;
+      for(const n3 of dadj[n2]){
+        if(n3===s||n3===n1)continue;
+        for(const n4 of dadj[n3]){
+          if(n4===s||n4===n1||n4===n2)continue;
+          if(dadj[n4].includes(s)){
+            const key=[s,n1,n2,n3,n4].slice().sort((a,b)=>a-b).join(',');
+            if(!fSet.has(key)){fSet.add(key);faces.push([s,n1,n2,n3,n4]);}
+          }
+        }
+      }
+    }
+  }
+  // Face data
+  const faceData=faces.map(f=>{
+    const c=[0,0,0];for(const vi of f){c[0]+=DV[vi][0]/5;c[1]+=DV[vi][1]/5;c[2]+=DV[vi][2]/5;}
+    const h=Math.sqrt(c[0]**2+c[1]**2+c[2]**2);
+    const n=c.map(x=>x/h);
+    const ip=f.map(vi=>[DV[vi][0]-h*n[0],DV[vi][1]-h*n[1],DV[vi][2]-h*n[2]]);
+    return {face:f,normal:n,h0:h,inplane:ip};
+  });
+  return {DV,faces,faceData};
+})();
+
+function buildDodFamilies(group, angleDeg, showFaces, showEdges, c1, c2, starA, starB) {
+  clearGroup(group);
+  const phi=(60-angleDeg)*Math.PI/180;
+  const sc=0.55;
+  const data=I4_DATA;
+
+  function drawFamily(dirSign, color, isStar) {
+    for(let fi=0;fi<data.faces.length;fi++){
+      const fd=data.faceData[fi];
+      const h=fd.h0*Math.cos(phi);
+      const n=new THREE.Vector3(fd.normal[0],fd.normal[1],fd.normal[2]);
+      const q=new THREE.Quaternion().setFromAxisAngle(n, dirSign*phi);
+      const verts=fd.inplane.map(ip=>{
+        const v=new THREE.Vector3(ip[0],ip[1],ip[2]).applyQuaternion(q);
+        v.add(n.clone().multiplyScalar(h));
+        return new THREE.Vector3(v.x*sc,v.y*sc,v.z*sc);
+      });
+
+      if(showEdges){
+        if(isStar){
+          // Pentagram winding: 0→2→4→1→3→0
+          const pts=[verts[0],verts[2],verts[4],verts[1],verts[3],verts[0]];
+          group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),
+            new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:0.8})));
+        } else {
+          group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([...verts,verts[0]]),
+            new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:0.8})));
+        }
+      }
+      if(showFaces){
+        if(isStar){
+          // Pentagram face triangulation
+          const P_=(1+Math.sqrt(5))/2;
+          const starOrder=[0,2,4,1,3];
+          const fl=[];
+          for(let i=0;i<5;i++){
+            const tip=verts[starOrder[i]];
+            const next=verts[starOrder[(i+1)%5]];
+            const prev=verts[starOrder[(i+4)%5]];
+            const t=1/P_;
+            const ix=new THREE.Vector3().lerpVectors(tip,next,t);
+            const px=new THREE.Vector3().lerpVectors(prev,tip,1-1/P_);
+            fl.push(tip.x,tip.y,tip.z, px.x,px.y,px.z, ix.x,ix.y,ix.z);
+          }
+          const inner=[];
+          for(let i=0;i<5;i++){
+            const tip=verts[starOrder[i]]; const next=verts[starOrder[(i+1)%5]];
+            inner.push(new THREE.Vector3().lerpVectors(tip,next,1/P_));
+          }
+          for(let i=1;i<4;i++) fl.push(inner[0].x,inner[0].y,inner[0].z,inner[i].x,inner[i].y,inner[i].z,inner[i+1].x,inner[i+1].y,inner[i+1].z);
+          const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(fl,3));g.computeVertexNormals();
+          group.add(new THREE.Mesh(g,new THREE.MeshStandardMaterial({color,side:THREE.DoubleSide,transparent:true,opacity:0.45,roughness:0.4})));
+        } else {
+          const fl=[];
+          for(let i=1;i<4;i++) fl.push(verts[0].x,verts[0].y,verts[0].z,verts[i].x,verts[i].y,verts[i].z,verts[i+1].x,verts[i+1].y,verts[i+1].z);
+          const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(fl,3));g.computeVertexNormals();
+          group.add(new THREE.Mesh(g,new THREE.MeshStandardMaterial({color,side:THREE.DoubleSide,transparent:true,opacity:0.45,roughness:0.4})));
+        }
+      }
+    }
+  }
+
+  drawFamily(1, c1, starA);
+  drawFamily(-1, c2, starB);
+}
+
+function buildI4(group, angleDeg, showFaces, showEdges, item) {
+  buildDodFamilies(group, angleDeg, showFaces, showEdges, item.c1, item.c2, false, false);
+}
+function buildI8(group, angleDeg, showFaces, showEdges, item) {
+  buildDodFamilies(group, angleDeg, showFaces, showEdges, item.c1, item.c2, true, true);
+}
+function buildI11(group, angleDeg, showFaces, showEdges, item) {
+  buildDodFamilies(group, angleDeg, showFaces, showEdges, item.c1, item.c2, false, true);
+}
+
+// ─────────────────────────────────────────────────────────────
+// I₇, I₁₂, I₁₃ — variants of I₃ with pentagram option
+// ─────────────────────────────────────────────────────────────
+// All use the same icosidodecahedron vertex mechanism as I₃.
+// I₁₂: identical to I₃ (pentagons), different θ only
+// I₇, I₁₃: pentagrams instead of pentagons
+
+function buildI3variant(group, angleDeg, showFaces, showEdges, c1, c2, pentagramN) {
+  clearGroup(group);
+  const phi=(60-angleDeg)*Math.PI/180;
+  const sc=0.65;
+
+  // 20 triangles
+  for(let fi=0;fi<20;fi++){
+    const td=I3_DATA.triData[fi];
+    const h=td.h0*Math.cos(phi);
+    const n=new THREE.Vector3(td.normal[0],td.normal[1],td.normal[2]);
+    const q=new THREE.Quaternion().setFromAxisAngle(n, I3_DATA.dirs[fi]*phi);
+    const verts=td.inplane.map(ip=>{
+      const v=new THREE.Vector3(ip[0],ip[1],ip[2]).applyQuaternion(q);
+      v.add(n.clone().multiplyScalar(h));
+      return new THREE.Vector3(v.x*sc,v.y*sc,v.z*sc);
+    });
+    if(showEdges){
+      group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([...verts,verts[0]]),
+        new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:0.85})));
+    }
+    if(showFaces){
+      const a=new Float32Array([verts[0].x,verts[0].y,verts[0].z,verts[1].x,verts[1].y,verts[1].z,verts[2].x,verts[2].y,verts[2].z]);
+      const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(a,3));g.computeVertexNormals();
+      group.add(new THREE.Mesh(g,new THREE.MeshStandardMaterial({color:c1,side:THREE.DoubleSide,transparent:true,opacity:0.6,roughness:0.4})));
+    }
+  }
+
+  // 12 pentagons/pentagrams from vertex positions
+  for(const pent of I3_DATA.pents){
+    const verts=pent.map(gvi=>{const v=i3VertPos(gvi,phi);return new THREE.Vector3(v.x*sc,v.y*sc,v.z*sc);});
+    if(showEdges){
+      if(pentagramN){
+        const pts=[verts[0],verts[2],verts[4],verts[1],verts[3],verts[0]];
+        group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),
+          new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:0.85})));
+      } else {
+        group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([...verts,verts[0]]),
+          new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:0.85})));
+      }
+    }
+    if(showFaces){
+      if(pentagramN){
+        const P_=(1+Math.sqrt(5))/2;
+        const starOrder=[0,2,4,1,3];
+        const fl=[];
+        for(let i=0;i<5;i++){
+          const tip=verts[starOrder[i]];
+          const next=verts[starOrder[(i+1)%5]];
+          const prev=verts[starOrder[(i+4)%5]];
+          const ix=new THREE.Vector3().lerpVectors(tip,next,1/P_);
+          const px=new THREE.Vector3().lerpVectors(prev,tip,1-1/P_);
+          fl.push(tip.x,tip.y,tip.z, px.x,px.y,px.z, ix.x,ix.y,ix.z);
+        }
+        const inner=[];
+        for(let i=0;i<5;i++){
+          const tip=verts[starOrder[i]];const next=verts[starOrder[(i+1)%5]];
+          inner.push(new THREE.Vector3().lerpVectors(tip,next,1/P_));
+        }
+        for(let i=1;i<4;i++) fl.push(inner[0].x,inner[0].y,inner[0].z,inner[i].x,inner[i].y,inner[i].z,inner[i+1].x,inner[i+1].y,inner[i+1].z);
+        const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(fl,3));g.computeVertexNormals();
+        group.add(new THREE.Mesh(g,new THREE.MeshStandardMaterial({color:c2,side:THREE.DoubleSide,transparent:true,opacity:0.45,roughness:0.4})));
+      } else {
+        const fl=[];
+        for(let i=1;i<4;i++) fl.push(verts[0].x,verts[0].y,verts[0].z,verts[i].x,verts[i].y,verts[i].z,verts[i+1].x,verts[i+1].y,verts[i+1].z);
+        const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(fl,3));g.computeVertexNormals();
+        group.add(new THREE.Mesh(g,new THREE.MeshStandardMaterial({color:c2,side:THREE.DoubleSide,transparent:true,opacity:0.45,roughness:0.4})));
+      }
+    }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// T₁, O₁, O₂ — cuboctahedron-based digon + polygon types
+// ─────────────────────────────────────────────────────────────
+// These use the Jitterbug vertex positions.
+// T₁: 6{2} + 4{3} — 6 digons (on 3 two-fold axes) + 4 triangles (one family of the Jitterbug)
+// O₁: 12{2} + 8{3} — 12 digons (on 6 two-fold axes) + 8 triangles (all Jitterbug triangles)
+// O₂: 12{2} + 6{4} — 12 digons (on 6 two-fold axes) + 6 squares (O₃'s squares)
+//
+// The digons are the edges connecting triangles — i.e., the cuboctahedron edges
+// that span between different triangles (the "gap edges" of the Jitterbug).
+
+// Build gap edge list: pairs of cuboctahedron vertices that share a square face
+// but NOT a triangle face.
+const CUBO_GAP_EDGES = (() => {
+  // Triangle edges
+  const triEdges = new Set();
+  for (const f of JB_FACE_IDX) {
+    for (let i=0;i<3;i++) {
+      const a=f[i], b=f[(i+1)%3];
+      triEdges.add(Math.min(a,b)+','+Math.max(a,b));
+    }
+  }
+  // All cuboctahedron edges (distance = 2)
+  const allEdges = [];
+  for (let i=0;i<12;i++) for (let j=i+1;j<12;j++) {
+    const d2 = CUBO_V[i].reduce((s,v,k)=>s+(v-CUBO_V[j][k])**2,0);
+    if (Math.abs(d2-4)<0.1) allEdges.push([i,j]);
+  }
+  // Gap edges = all edges minus triangle edges
+  return allEdges.filter(([a,b]) => !triEdges.has(a+','+b));
+})();
+
+function buildT1(group, angleDeg, showFaces, showEdges, c1, c2) {
+  clearGroup(group);
+  const phi=(60-angleDeg)*Math.PI/180;
+  const h=JB_H0*Math.cos(phi);
+
+  // 4 triangles (first family only: faces 0,2,5,7 which share color in bipartite)
+  // Actually T₁ has gn=4, meaning 4 triangles. The Jitterbug's 8 triangles split into
+  // two families of 4 (the bipartite coloring). T₁ uses one family.
+  const family = [0,2,5,7]; // color-0 in JB_DIRS: indices where DIRS[i]=1
+  // Actually let me pick by DIRS value
+  const famA = [];
+  for (let fi=0;fi<8;fi++) { if (JB_DIRS[fi]===1) famA.push(fi); }
+  
+  for (const fi of famA) {
+    const n=JB_NORMALS[fi];
+    const q=new THREE.Quaternion().setFromAxisAngle(n, JB_DIRS[fi]*phi);
+    const center=n.clone().multiplyScalar(h);
+    const verts=JB_INPLANE[fi].map(ip=>ip.clone().applyQuaternion(q).add(center));
+    if(showEdges){
+      group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([...verts,verts[0]]),
+        new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:0.85})));
+    }
+    if(showFaces){
+      const a=new Float32Array([verts[0].x,verts[0].y,verts[0].z,verts[1].x,verts[1].y,verts[1].z,verts[2].x,verts[2].y,verts[2].z]);
+      const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(a,3));g.computeVertexNormals();
+      group.add(new THREE.Mesh(g,new THREE.MeshStandardMaterial({color:c2||0xffcc77,side:THREE.DoubleSide,transparent:true,opacity:0.6,roughness:0.4})));
+    }
+  }
+
+  // 6 digons: gap edges connecting vertices of different triangles in the same family
+  // For T₁ with only 4 triangles, the digons connect vertices of these 4 triangles
+  // that are NOT connected by triangle edges.
+  // Use gap edges where BOTH endpoints belong to a family-A triangle.
+  const famVerts = new Set();
+  for (const fi of famA) for (const vi of JB_FACE_IDX[fi]) famVerts.add(vi);
+
+  let digonCount = 0;
+  for (const [a,b] of CUBO_GAP_EDGES) {
+    if (famVerts.has(a) && famVerts.has(b)) {
+      const va = o3TriVertPos(a, phi);
+      const vb = o3TriVertPos(b, phi);
+      if(showEdges){
+        group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([va,vb]),
+          new THREE.LineBasicMaterial({color:c1||0xff8833,linewidth:2})));
+      }
+      digonCount++;
+    }
+  }
+}
+
+function buildO1(group, angleDeg, showFaces, showEdges, c1, c2) {
+  clearGroup(group);
+  const phi=(60-angleDeg)*Math.PI/180;
+  const h=JB_H0*Math.cos(phi);
+
+  // 8 triangles (all Jitterbug triangles)
+  JB_NORMALS.forEach((n, fi) => {
+    const q=new THREE.Quaternion().setFromAxisAngle(n, JB_DIRS[fi]*phi);
+    const center=n.clone().multiplyScalar(h);
+    const verts=JB_INPLANE[fi].map(ip=>ip.clone().applyQuaternion(q).add(center));
+    if(showEdges){
+      group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([...verts,verts[0]]),
+        new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:0.85})));
+    }
+    if(showFaces){
+      const a=new Float32Array([verts[0].x,verts[0].y,verts[0].z,verts[1].x,verts[1].y,verts[1].z,verts[2].x,verts[2].y,verts[2].z]);
+      const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(a,3));g.computeVertexNormals();
+      group.add(new THREE.Mesh(g,new THREE.MeshStandardMaterial({color:c2||0x77ffaa,side:THREE.DoubleSide,transparent:true,opacity:0.6,roughness:0.4})));
+    }
+  });
+
+  // 12 digons (gap edges — square edges of cuboctahedron)
+  for (const [a,b] of CUBO_GAP_EDGES) {
+    const va = o3TriVertPos(a, phi);
+    const vb = o3TriVertPos(b, phi);
+    if(showEdges){
+      group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([va,vb]),
+        new THREE.LineBasicMaterial({color:c1||0x33cc77})));
+    }
+  }
+}
+
+function buildO2(group, angleDeg, showFaces, showEdges, c1, c2) {
+  clearGroup(group);
+  const phi=(60-angleDeg)*Math.PI/180;
+
+  // 12 digons (same gap edges as O₁)
+  for (const [a,b] of CUBO_GAP_EDGES) {
+    const va = o3TriVertPos(a, phi);
+    const vb = o3TriVertPos(b, phi);
+    if(showEdges){
+      group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([va,vb]),
+        new THREE.LineBasicMaterial({color:c1||0x33cc77})));
+    }
+  }
+
+  // 6 squares (same as O₃'s squares — rhombi from vertex positions)
+  for (const sqVerts of O3_SQ_FACES) {
+    const verts = sqVerts.map(gvi => o3TriVertPos(gvi, phi));
+    if(showEdges){
+      group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([...verts,verts[0]]),
+        new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:0.85})));
+    }
+    if(showFaces){
+      const d02=verts[0].distanceTo(verts[2]);
+      const d13=verts[1].distanceTo(verts[3]);
+      let arr;
+      if(d02<=d13){
+        arr=new Float32Array([verts[0].x,verts[0].y,verts[0].z,verts[1].x,verts[1].y,verts[1].z,verts[2].x,verts[2].y,verts[2].z,
+          verts[0].x,verts[0].y,verts[0].z,verts[2].x,verts[2].y,verts[2].z,verts[3].x,verts[3].y,verts[3].z]);
+      } else {
+        arr=new Float32Array([verts[0].x,verts[0].y,verts[0].z,verts[1].x,verts[1].y,verts[1].z,verts[3].x,verts[3].y,verts[3].z,
+          verts[1].x,verts[1].y,verts[1].z,verts[2].x,verts[2].y,verts[2].z,verts[3].x,verts[3].y,verts[3].z]);
+      }
+      const geo=new THREE.BufferGeometry();
+      geo.setAttribute('position',new THREE.BufferAttribute(arr,3));geo.computeVertexNormals();
+      group.add(new THREE.Mesh(geo,new THREE.MeshStandardMaterial({color:c2||0x77ffaa,side:THREE.DoubleSide,transparent:true,opacity:0.55,roughness:0.4})));
+    }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// O₄ — counter-rotating cube face mechanism
+// ─────────────────────────────────────────────────────────────
+// 6{4}+6{4}: Two families of 6 squares on 3 four-fold axes.
+// Family A rotates by +ψ, Family B by -ψ. h(ψ)=cos(ψ).
+// At ψ=0: both overlap as a cube. Central position: both separate.
+
+const O4_FACE_DATA = (() => {
+  const faces = [
+    { verts:[[1,1,1],[1,-1,1],[1,-1,-1],[1,1,-1]], normal:[1,0,0] },
+    { verts:[[-1,1,1],[-1,1,-1],[-1,-1,-1],[-1,-1,1]], normal:[-1,0,0] },
+    { verts:[[1,1,1],[1,1,-1],[-1,1,-1],[-1,1,1]], normal:[0,1,0] },
+    { verts:[[1,-1,1],[-1,-1,1],[-1,-1,-1],[1,-1,-1]], normal:[0,-1,0] },
+    { verts:[[1,1,1],[-1,1,1],[-1,-1,1],[1,-1,1]], normal:[0,0,1] },
+    { verts:[[1,1,-1],[1,-1,-1],[-1,-1,-1],[-1,1,-1]], normal:[0,0,-1] },
+  ];
+  return faces.map(f => {
+    const ip = f.verts.map(v => [v[0]-f.normal[0], v[1]-f.normal[1], v[2]-f.normal[2]]);
+    return { normal:f.normal, h0:1, inplane:ip };
+  });
+})();
+
+function buildO4(group, angleDeg, showFaces, showEdges, c1, c2) {
+  clearGroup(group);
+  const phi=(60-angleDeg)*Math.PI/180;
+  const sc=0.75;
+
+  function drawFamily(dirSign, color) {
+    for(let fi=0;fi<6;fi++){
+      const fd=O4_FACE_DATA[fi];
+      const h=fd.h0*Math.cos(phi);
+      const n=new THREE.Vector3(fd.normal[0],fd.normal[1],fd.normal[2]);
+      const q=new THREE.Quaternion().setFromAxisAngle(n, dirSign*phi);
+      const verts=fd.inplane.map(ip=>{
+        const v=new THREE.Vector3(ip[0],ip[1],ip[2]).applyQuaternion(q);
+        v.add(n.clone().multiplyScalar(h));
+        return new THREE.Vector3(v.x*sc,v.y*sc,v.z*sc);
+      });
+      if(showEdges){
+        group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([...verts,verts[0]]),
+          new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:0.8})));
+      }
+      if(showFaces){
+        const fl=[];
+        for(let i=1;i<3;i++) fl.push(verts[0].x,verts[0].y,verts[0].z,verts[i].x,verts[i].y,verts[i].z,verts[i+1].x,verts[i+1].y,verts[i+1].z);
+        const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(fl,3));g.computeVertexNormals();
+        group.add(new THREE.Mesh(g,new THREE.MeshStandardMaterial({color,side:THREE.DoubleSide,transparent:true,opacity:0.5,roughness:0.4})));
+      }
+    }
+  }
+  drawFamily(1, c1||0x11ff99);
+  drawFamily(-1, c2||0x66ffcc);
+}
+
+// ─────────────────────────────────────────────────────────────
+// ICOSAHEDRAL DIGON TYPES (I₁,I₂,I₅,I₆,I₉,I₁₀)
+// ─────────────────────────────────────────────────────────────
+// These have digons on 15 two-fold axes plus triangles or pentagons/pentagrams
+// on three-fold or five-fold axes. The vertex sets differ from I₃.
+// Using cylinder-rotation mechanism: each polygon sits on its symmetry axis,
+// rotating by ±ψ with h=h₀·cos(ψ), using the complete axis pools.
+
+function buildIcoDigon(group, angleDeg, showFaces, showEdges, item) {
+  clearGroup(group);
+  const phi=(60-angleDeg)*Math.PI/180;
+  const sc=0.65;
+  const isStar = !!item.star_n;
+
+  // Use I₃ vertex positions for all vertices
+  const vpos = [];
+  for(let i=0;i<I3_DATA.IDV.length;i++){
+    const v=i3VertPos(i, phi);
+    vpos.push(new THREE.Vector3(v.x*sc,v.y*sc,v.z*sc));
+  }
+
+  // Draw all 60 icosidodecahedron edges as digon lines
+  for(const [a,b] of I3_DATA.edges){
+    if(showEdges){
+      group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([vpos[a],vpos[b]]),
+        new THREE.LineBasicMaterial({color:item.c1||0xff5577,transparent:true,opacity:0.7})));
+    }
+  }
+
+  if(item.n===3){
+    // 2∼3 types (I₁, I₅): draw 20 triangle faces
+    for(let fi=0;fi<20;fi++){
+      const verts=I3_DATA.tris[fi].map(gvi=>vpos[gvi]);
+      if(showEdges){
+        group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([...verts,verts[0]]),
+          new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:0.9})));
+      }
+      if(showFaces){
+        const a=new Float32Array([verts[0].x,verts[0].y,verts[0].z,verts[1].x,verts[1].y,verts[1].z,verts[2].x,verts[2].y,verts[2].z]);
+        const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(a,3));g.computeVertexNormals();
+        group.add(new THREE.Mesh(g,new THREE.MeshStandardMaterial({color:item.c2||0xff99aa,side:THREE.DoubleSide,transparent:true,opacity:0.6,roughness:0.4})));
+      }
+    }
+  } else {
+    // 2∼5 types (I₂, I₆, I₉, I₁₀): draw 12 pentagon/pentagram faces
+    for(const pent of I3_DATA.pents){
+      const verts=pent.map(gvi=>vpos[gvi]);
+      if(showEdges){
+        if(isStar){
+          const pts=[verts[0],verts[2],verts[4],verts[1],verts[3],verts[0]];
+          group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),
+            new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:0.9})));
+        } else {
+          group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([...verts,verts[0]]),
+            new THREE.LineBasicMaterial({color:0xffffff,transparent:true,opacity:0.9})));
+        }
+      }
+      if(showFaces){
+        if(isStar){
+          const P_=(1+Math.sqrt(5))/2;
+          const so=[0,2,4,1,3];
+          const fl=[];
+          for(let i=0;i<5;i++){
+            const tip=verts[so[i]],next=verts[so[(i+1)%5]],prev=verts[so[(i+4)%5]];
+            const ix=new THREE.Vector3().lerpVectors(tip,next,1/P_);
+            const px=new THREE.Vector3().lerpVectors(prev,tip,1-1/P_);
+            fl.push(tip.x,tip.y,tip.z,px.x,px.y,px.z,ix.x,ix.y,ix.z);
+          }
+          const inner=[];
+          for(let i=0;i<5;i++){const t=verts[so[i]],n2=verts[so[(i+1)%5]];inner.push(new THREE.Vector3().lerpVectors(t,n2,1/P_));}
+          for(let i=1;i<4;i++)fl.push(inner[0].x,inner[0].y,inner[0].z,inner[i].x,inner[i].y,inner[i].z,inner[i+1].x,inner[i+1].y,inner[i+1].z);
+          const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(fl,3));g.computeVertexNormals();
+          group.add(new THREE.Mesh(g,new THREE.MeshStandardMaterial({color:item.c2||0xff99aa,side:THREE.DoubleSide,transparent:true,opacity:0.45,roughness:0.4})));
+        } else {
+          const fl=[];
+          for(let i=1;i<4;i++) fl.push(verts[0].x,verts[0].y,verts[0].z,verts[i].x,verts[i].y,verts[i].z,verts[i+1].x,verts[i+1].y,verts[i+1].z);
+          const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute(fl,3));g.computeVertexNormals();
+          group.add(new THREE.Mesh(g,new THREE.MeshStandardMaterial({color:item.c2||0xff99aa,side:THREE.DoubleSide,transparent:true,opacity:0.45,roughness:0.4})));
+        }
+      }
+    }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// SCHEMATIC GEOMETRY — for all non-verified types
+// ─────────────────────────────────────────────────────────────
+function clearGroup(g) {
+  while (g.children.length) {
+    const c = g.children[0];
+    if (c.geometry) c.geometry.dispose();
+    if (c.material) [].concat(c.material).forEach(m=>m.dispose());
+    g.remove(c);
+  }
+}
+
+const PHI = (1+Math.sqrt(5))/2;
+
+// ── Global axis pools (computed once) ──
+const AXIS_POOLS = (() => {
+  const PHI_ = (1+Math.sqrt(5))/2;
+  const IV = [
+    [0,1,PHI_],[0,-1,PHI_],[0,1,-PHI_],[0,-1,-PHI_],
+    [1,PHI_,0],[-1,PHI_,0],[1,-PHI_,0],[-1,-PHI_,0],
+    [PHI_,0,1],[-PHI_,0,1],[PHI_,0,-1],[-PHI_,0,-1]
+  ];
+  function norm(v){const l=Math.sqrt(v[0]*v[0]+v[1]*v[1]+v[2]*v[2]);return l>1e-10?[v[0]/l,v[1]/l,v[2]/l]:[0,0,1];}
+  function dedup(axes){
+    const r=[];
+    for(const a of axes){let f=false;for(const b of r){if(Math.abs(a[0]*b[0]+a[1]*b[1]+a[2]*b[2])>0.9999){f=true;break;}}if(!f)r.push(a);}
+    return r;
+  }
+  const IE=[];
+  for(let i=0;i<12;i++)for(let j=i+1;j<12;j++){
+    if(Math.abs(IV[i].reduce((s,v,k)=>s+(v-IV[j][k])**2,0)-4)<0.5) IE.push([i,j]);
+  }
+  const FS=new Set();
+  for(let i=0;i<12;i++){
+    const nb=IE.filter(e=>e[0]===i||e[1]===i).map(e=>e[0]===i?e[1]:e[0]);
+    for(let a=0;a<nb.length;a++)for(let b=a+1;b<nb.length;b++){
+      if(IE.some(e=>(e[0]===nb[a]&&e[1]===nb[b])||(e[0]===nb[b]&&e[1]===nb[a]))){
+        const s=[i,nb[a],nb[b]].sort((a,b)=>a-b); FS.add(s.join(','));
+      }
+    }
+  }
+  const IF=[...FS].map(s=>s.split(',').map(Number));
+  return {
+    A5: {
+      two:  dedup(IE.map(([i,j])=>norm([(IV[i][0]+IV[j][0])/2,(IV[i][1]+IV[j][1])/2,(IV[i][2]+IV[j][2])/2]))),
+      three:dedup(IF.map(f=>{const c=[0,0,0];for(const vi of f){c[0]+=IV[vi][0];c[1]+=IV[vi][1];c[2]+=IV[vi][2];}return norm(c);})),
+      five: dedup(IV.map(norm)),
+    },
+    S4: {
+      two:  dedup([[1,1,0],[1,-1,0],[1,0,1],[1,0,-1],[0,1,1],[0,1,-1]].map(norm)),
+      three:[[1,1,1],[1,-1,-1],[-1,1,-1],[-1,-1,1]].map(norm),
+      four: [[1,0,0],[0,1,0],[0,0,1]],
+    },
+    A4: {
+      two:  [[1,0,0],[0,1,0],[0,0,1]],
+      three:[[1,1,1],[1,-1,-1],[-1,1,-1],[-1,-1,1]].map(norm),
+    },
+    D:  { two: [[1,0,0],[0,1,0],[-1,0,0],[0,-1,0],[0,0,1],[0,0,-1]].map(norm), three: [norm([0,1,0])] },
+  };
+})();
+
+const A5_TWO = AXIS_POOLS.A5.two;
+const A5_THREE = AXIS_POOLS.A5.three;
+const A5_FIVE = AXIS_POOLS.A5.five;
+
+function schematicAxes(item) {
+  const g = item.group || '';
+  const m = item.m || 3, n = item.n || 3;
+
+  const pool = g.startsWith('A₅') ? AXIS_POOLS.A5 : g.startsWith('S₄') ? AXIS_POOLS.S4 :
+               g.startsWith('A₄') ? AXIS_POOLS.A4 : AXIS_POOLS.D;
+  function role(sides) {
+    return sides===2?'two' : sides===3?'three' : sides===4?'four' : sides===5?'five' : 'two';
+  }
+  // Use ALL available axes — no cap. If gm > pool size, we replicate (2 per axis).
+  const mPool = pool[role(m)] || pool.two;
+  const nPool = pool[role(n)] || pool.three;
+  // Take up to gm axes — if gm > pool, include antiparallel duplicates
+  let mAxes = mPool.slice();
+  if (item.gm > mAxes.length) {
+    const anti = mAxes.map(a => [-a[0], -a[1], -a[2]]);
+    mAxes = mAxes.concat(anti).slice(0, item.gm);
+  }
+  let nAxes = nPool.slice();
+  if (item.gn > nAxes.length) {
+    const anti = nAxes.map(a => [-a[0], -a[1], -a[2]]);
+    nAxes = nAxes.concat(anti).slice(0, item.gn);
+  }
+  return { mAxes, nAxes };
+}
+
+function ringGeo(sides, r, isStar) {
+  const s = Math.round(Math.abs(sides));
+  const pts = [];
+  if (isStar && s === 5) {
+    // Pentagram {5/2}: connect every 2nd vertex
+    for (let i = 0; i <= 5; i++) {
+      const idx = (i * 2) % 5;
+      const a = (idx / 5) * Math.PI * 2;
+      pts.push(new THREE.Vector3(Math.cos(a) * r, Math.sin(a) * r, 0));
+    }
+  } else {
+    for (let i = 0; i <= s; i++) {
+      const a = (i / s) * Math.PI * 2;
+      pts.push(new THREE.Vector3(Math.cos(a) * r, Math.sin(a) * r, 0));
+    }
+  }
+  return new THREE.BufferGeometry().setFromPoints(pts);
+}
+
+function buildSchematic(group, item, opts) {
+  clearGroup(group);
+  const { showFaces=true, showEdges=true, phase=0 } = opts||{};
+  const c1 = item.c1||0x7799ff, c2 = item.c2||0xaabbff;
+  const R = 0.6;
+  const spread = (item.group||'').startsWith('A₅') ? 1.6 :
+                 (item.group||'').startsWith('S₄') ? 1.35 : 1.15;
+  const { mAxes, nAxes } = schematicAxes(item);
+  const UP = new THREE.Vector3(0,1,0);
+
+  function placePoly(sides, color, axes, phaseSign, isStar) {
+    for (const axRaw of axes) {
+      const ax = new THREE.Vector3(...axRaw).normalize();
+      const g = new THREE.Group();
+      const offset = spread + Math.sin(phase + phaseSign*0.5)*0.15;
+      g.position.copy(ax.clone().multiplyScalar(offset));
+      if (Math.abs(ax.dot(UP)) < 0.999) {
+        const q = new THREE.Quaternion().setFromUnitVectors(UP, ax);
+        g.quaternion.copy(q);
+      } else if (ax.dot(UP) < -0.5) {
+        // Antiparallel: flip 180° around X
+        g.quaternion.setFromAxisAngle(new THREE.Vector3(1,0,0), Math.PI);
+      }
+      g.rotateOnWorldAxis(ax, phase * 0.4 * phaseSign);
+
+      if (showEdges) {
+        g.add(new THREE.Line(ringGeo(sides, R, isStar), new THREE.LineBasicMaterial({ color })));
+      }
+      if (showFaces && Math.round(Math.abs(sides)) >= 3) {
+        const s = Math.round(Math.abs(sides));
+        if (isStar && s === 5) {
+          // Pentagram face: 5 triangular points + inner pentagon
+          const PHI_ = (1+Math.sqrt(5))/2;
+          const verts = [];
+          for (let i = 0; i < 5; i++) {
+            const a = (i/5)*Math.PI*2;
+            verts.push([Math.cos(a)*R, Math.sin(a)*R]);
+          }
+          // Star order: 0,2,4,1,3
+          const starOrder = [0,2,4,1,3];
+          const floats = [];
+          for (let i = 0; i < 5; i++) {
+            const tip = verts[starOrder[i]];
+            const next = verts[starOrder[(i+1)%5]];
+            // Inner intersection at 1/φ from tip toward next
+            const t = 1/PHI_;
+            const ix = tip[0] + t*(next[0]-tip[0]);
+            const iy = tip[1] + t*(next[1]-tip[1]);
+            // Previous inner point
+            const prev = verts[starOrder[(i+4)%5]];
+            const t2 = 1 - 1/PHI_;
+            const px = prev[0] + t2*(tip[0]-prev[0]);
+            const py = prev[1] + t2*(tip[1]-prev[1]);
+            // Triangle: tip, previous-inner, next-inner
+            floats.push(tip[0],tip[1],0, px,py,0, ix,iy,0);
+          }
+          // Inner pentagon
+          const inner = [];
+          for (let i = 0; i < 5; i++) {
+            const tip = verts[starOrder[i]];
+            const next = verts[starOrder[(i+1)%5]];
+            const t = 1/PHI_;
+            inner.push([tip[0]+t*(next[0]-tip[0]), tip[1]+t*(next[1]-tip[1])]);
+          }
+          for (let i = 1; i < 4; i++) {
+            floats.push(inner[0][0],inner[0][1],0, inner[i][0],inner[i][1],0, inner[i+1][0],inner[i+1][1],0);
+          }
+          const fg = new THREE.BufferGeometry();
+          fg.setAttribute('position', new THREE.Float32BufferAttribute(floats, 3));
+          fg.computeVertexNormals();
+          g.add(new THREE.Mesh(fg, new THREE.MeshStandardMaterial({
+            color, side:THREE.DoubleSide, transparent:true, opacity:0.45, roughness:0.4
+          })));
+        } else {
+          const verts = [];
+          for (let i=0; i<s; i++) {
+            const a1=(i/s)*Math.PI*2, a2=((i+1)/s)*Math.PI*2;
+            verts.push(0,0,0, Math.cos(a1)*R,Math.sin(a1)*R,0, Math.cos(a2)*R,Math.sin(a2)*R,0);
+          }
+          const fg = new THREE.BufferGeometry();
+          fg.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+          fg.computeVertexNormals();
+          g.add(new THREE.Mesh(fg, new THREE.MeshStandardMaterial({
+            color, side:THREE.DoubleSide, transparent:true, opacity:0.45, roughness:0.4
+          })));
+        }
+      }
+      group.add(g);
+    }
+  }
+  placePoly(item.m, c1, mAxes,  1, !!item.star_m);
+  placePoly(item.n, c2, nAxes, -1, !!item.star_n);
+}
+
+// ─────────────────────────────────────────────────────────────
+// DIHEDRAL GEOMETRY — exact construction
+// ─────────────────────────────────────────────────────────────
+
+function buildDihedralA(group, item, phase, showFaces, showEdges) {
+  // Class A — Petrie Zigzag: n{2} + n{2}
+  // Non-planar 2n-gon winding around the principal (n-fold) axis.
+  // Top vertices at angles 2πi/n, bottom at 2π(i+0.5)/n, offset by half-step.
+  // Family A: bot[i]→top[i] (rising), Family B: top[i]→bot[(i+1)%n] (falling).
+  clearGroup(group);
+  const nn = parseInt(item.id.replace('DA',''));
+  const R = 1.2;
+  const h = 0.5 + 0.4 * Math.sin(phase * 0.5 + 0.5);
+  const twist = phase * 0.2;
+
+  const top = [], bot = [];
+  for (let i = 0; i < nn; i++) {
+    const at = (2*Math.PI*i)/nn + twist;
+    const ab = (2*Math.PI*(i+0.5))/nn + twist;
+    top.push(new THREE.Vector3(R*Math.cos(at), h, R*Math.sin(at)));
+    bot.push(new THREE.Vector3(R*Math.cos(ab), -h, R*Math.sin(ab)));
+  }
+
+  const matA = new THREE.LineBasicMaterial({ color: item.c1 });
+  const matB = new THREE.LineBasicMaterial({ color: item.c2 });
+
+  // Family A: rising digons — bot[i] → top[i]
+  for (let i = 0; i < nn; i++) {
+    const geo = new THREE.BufferGeometry().setFromPoints([bot[i], top[i]]);
+    group.add(new THREE.Line(geo, matA));
+  }
+  // Family B: falling digons — top[i] → bot[(i+1)%n]
+  for (let i = 0; i < nn; i++) {
+    const geo = new THREE.BufferGeometry().setFromPoints([top[i], bot[(i+1)%nn]]);
+    group.add(new THREE.Line(geo, matB));
+  }
+}
+
+function buildDihedralB(group, item, phase, showFaces, showEdges) {
+  // Class B — Prism: n{2} + 2{n/k}
+  // Two n-gons (top/bottom) + n digons (lateral edges).
+  // Motion: top rotates by +ψ, bottom by -ψ around principal axis.
+  clearGroup(group);
+  const nn = parseInt(item.id.replace('DB',''));
+  const R = 1.0;
+  const twist = phase * 0.4;
+  const h = 0.7 + 0.3 * Math.cos(twist);
+
+  const topV = [], botV = [];
+  for (let i = 0; i < nn; i++) {
+    const at = (2*Math.PI*i)/nn + twist;
+    const ab = (2*Math.PI*i)/nn - twist;
+    topV.push(new THREE.Vector3(R*Math.cos(at), h, R*Math.sin(at)));
+    botV.push(new THREE.Vector3(R*Math.cos(ab), -h, R*Math.sin(ab)));
+  }
+
+  const edgeMat = new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85 });
+
+  // n-gon faces (top and bottom)
+  if (showEdges) {
+    const topPts = [...topV, topV[0]];
+    const botPts = [...botV, botV[0]];
+    group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(topPts), new THREE.LineBasicMaterial({ color: item.c2 })));
+    group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(botPts), new THREE.LineBasicMaterial({ color: item.c2 })));
+  }
+  if (showFaces && nn >= 3) {
+    for (const verts of [topV, botV]) {
+      const floats = [];
+      for (let i = 1; i < nn - 1; i++) {
+        floats.push(verts[0].x,verts[0].y,verts[0].z, verts[i].x,verts[i].y,verts[i].z, verts[i+1].x,verts[i+1].y,verts[i+1].z);
+      }
+      const geo = new THREE.BufferGeometry();
+      geo.setAttribute('position', new THREE.Float32BufferAttribute(floats, 3));
+      geo.computeVertexNormals();
+      group.add(new THREE.Mesh(geo, new THREE.MeshStandardMaterial({
+        color: item.c2, side: THREE.DoubleSide, transparent: true, opacity: 0.45, roughness: 0.4
+      })));
+    }
+  }
+
+  // n digons (lateral edges)
+  for (let i = 0; i < nn; i++) {
+    if (showEdges) {
+      const geo = new THREE.BufferGeometry().setFromPoints([topV[i], botV[i]]);
+      group.add(new THREE.Line(geo, new THREE.LineBasicMaterial({ color: item.c1 })));
+    }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// UNIFIED DISPATCH
+// ─────────────────────────────────────────────────────────────
+// Items that use angleDeg-based animation (like the Jitterbug) vs phase-based
+function isAngleBased(item) {
+  if (item.id==='T2'||item.id==='RT2'||item.id==='CH1') return true;
+  if (item.id==='T1') return true;
+  if (item.id==='O1'||item.id==='O2'||item.id==='O3'||item.id==='O4'||item.id==='RO4'||item.id==='CH2') return true;
+  if (item.id==='I3'||item.id==='I7'||item.id==='I12'||item.id==='I13') return true;
+  if (item.id==='I14'||item.id==='RI14') return true;
+  if (item.id==='I4'||item.id==='RI4') return true;
+  if (item.id==='I8'||item.id==='RI8') return true;
+  if (item.id==='I11'||item.id==='EQ1') return true;
+  if (item.id==='I1'||item.id==='I2'||item.id==='I5'||item.id==='I6'||item.id==='I9'||item.id==='I10') return true;
+  return false;
+}
+
+function buildAny(group, item, opts) {
+  const { angleDeg, phase=0, showFaces=true, showEdges=true } = opts||{};
+
+  if (item.id.startsWith('DA')) {
+    buildDihedralA(group, item, phase, showFaces, showEdges);
+  } else if (item.id.startsWith('DB')) {
+    buildDihedralB(group, item, phase, showFaces, showEdges);
+  } else if (item.id === 'O3' || item.id === 'CH2') {
+    buildO3(group, angleDeg ?? 45, showFaces, showEdges, item.c1, item.c2);
+  } else if (item.id === 'O1') {
+    buildO1(group, angleDeg ?? 45, showFaces, showEdges, item.c1, item.c2);
+  } else if (item.id === 'O2') {
+    buildO2(group, angleDeg ?? 45, showFaces, showEdges, item.c1, item.c2);
+  } else if (item.id === 'O4' || item.id === 'RO4') {
+    buildO4(group, angleDeg ?? 45, showFaces, showEdges, item.c1, item.c2);
+  } else if (item.id === 'T1') {
+    buildT1(group, angleDeg ?? 45, showFaces, showEdges, item.c1, item.c2);
+  } else if (item.id === 'I3') {
+    buildI3(group, angleDeg ?? 45, showFaces, showEdges, item.c1, item.c2);
+  } else if (item.id === 'I7' || item.id === 'I13') {
+    buildI3variant(group, angleDeg ?? 45, showFaces, showEdges, item.c1, item.c2, true);
+  } else if (item.id === 'I12') {
+    buildI3variant(group, angleDeg ?? 45, showFaces, showEdges, item.c1, item.c2, false);
+  } else if (item.id === 'I14' || item.id === 'RI14') {
+    buildI14(group, angleDeg ?? 45, showFaces, showEdges, item.c1, item.c2);
+  } else if (item.id === 'I4' || item.id === 'RI4') {
+    buildI4(group, angleDeg ?? 45, showFaces, showEdges, item);
+  } else if (item.id === 'I8' || item.id === 'RI8') {
+    buildI8(group, angleDeg ?? 45, showFaces, showEdges, item);
+  } else if (item.id === 'I11' || item.id === 'EQ1') {
+    buildI11(group, angleDeg ?? 45, showFaces, showEdges, item);
+  } else if (item.id==='I1'||item.id==='I2'||item.id==='I5'||item.id==='I6'||item.id==='I9'||item.id==='I10') {
+    buildIcoDigon(group, angleDeg ?? 45, showFaces, showEdges, item);
+  } else if (item.id==='T2'||item.id==='RT2'||item.id==='CH1') {
+    buildJitterbug(group, angleDeg ?? 45, showFaces, showEdges, item.c1);
+  } else {
+    buildSchematic(group, item, { phase, showFaces, showEdges });
+  }
+}
+
+function buildItem(group, item, opts) {
+  buildAny(group, item, opts);
+}
+
+// ─────────────────────────────────────────────────────────────
+// BUILD CARDS
+// ─────────────────────────────────────────────────────────────
+function buildCards() {
+  for (const item of CATALOG) {
+    const grid = document.getElementById(item.grid);
+    if (!grid) continue;
+
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.dataset.id = item.id;
+
+    const thumb = document.createElement('div');
+    thumb.className = 'card-thumb';
+
+    const img = document.createElement('img');
+    img.alt = item.label;
+    img.style.opacity = '0';
+    img.style.transition = 'opacity .3s';
+    item._img = img;
+
+    const badge = document.createElement('div');
+    badge.className = 'badge';
+    badge.textContent = item.group || '—';
+
+    const vbadge = document.createElement('div');
+    vbadge.className = item.verified ? 'verified-badge' : 'schematic-badge';
+    vbadge.textContent = item.verified ? '✓ derived' : '~ schematic';
+
+    thumb.appendChild(img);
+    thumb.appendChild(badge);
+    thumb.appendChild(vbadge);
+    card.appendChild(thumb);
+
+    const body = document.createElement('div');
+    body.className = 'card-body';
+    const tags = (item.tags||[]).map(t=>`<span class="tag ${t}">${t}</span>`).join('');
+    const vinfo = item.vertices ? `<span class="tag">v=${item.vertices} e=${item.edges}</span>` : '';
+    body.innerHTML = `
+      <div class="card-title">${item.label}</div>
+      <div class="card-formula">${item.formula}</div>
+      <div class="card-desc">${(item.desc||'').slice(0,100)}${(item.desc||'').length>100?'…':''}</div>
+      <div class="card-tags">${tags}${vinfo}</div>
+      <button class="anim-btn">▶ Open Detail View</button>`;
+    body.querySelector('.anim-btn').addEventListener('click', e=>{e.stopPropagation();openDetail(item);});
+    card.appendChild(body);
+
+    card.addEventListener('click', ()=>openDetail(item));
+    card.addEventListener('mouseenter', ()=>startLive(item, card));
+    card.addEventListener('mouseleave', stopLive);
+
+    grid.appendChild(card);
+  }
+  stampThumbnails();
+}
+
+async function stampThumbnails() {
+  for (const item of CATALOG) {
+    const opts = item.verified ? { angleDeg:ICOSA_ANGLE, showFaces:true, showEdges:true }
+                               : { phase:0, showFaces:true, showEdges:true };
+    buildItem(offGroup, item, opts);
+    offGroup.rotation.set(0.4, 0.6, 0);
+    offRenderer.render(offScene, offCam);
+    if (item._img) {
+      item._img.src = offCanvas.toDataURL();
+      item._img.style.opacity = '1';
+    }
+    await new Promise(r=>setTimeout(r, 0));
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// LIVE HOVER
+// ─────────────────────────────────────────────────────────────
+let liveItem=null, liveRAF=null, liveT=0, liveCard=null;
+
+function startLive(item, card) {
+  if (liveItem===item) return;
+  if (detItem) return; // don't show hover preview while detail panel is open
+  stopLive();
+  liveItem=item; liveCard=card;
+  card.classList.add('active-hover');
+  const r = card.querySelector('.card-thumb').getBoundingClientRect();
+  liveCanvas.style.display='block';
+  liveCanvas.style.left=r.left+'px';
+  liveCanvas.style.top=r.top+'px';
+  liveCanvas.style.width=r.width+'px';
+  liveCanvas.style.height=r.height+'px';
+  liveT=0;
+  const isJB = isAngleBased(item);
+  liveGroup.rotation.set(0.4, 0.6, 0);
+
+  function loop() {
+    liveT += 0.014;
+    liveGroup.rotation.y += 0.014;
+    const isJB = isAngleBased(item);
+    if (isJB) {
+      const angleDeg = 30 + 30*Math.cos(liveT*0.5); // oscillate 0..60 (oct..cubo)
+      buildAny(liveGroup, item, { angleDeg, showFaces:true, showEdges:true });
+    } else {
+      buildAny(liveGroup, item, { phase:liveT, showFaces:true, showEdges:true });
+    }
+    liveRenderer.render(liveScene, liveCam);
+    liveRAF = requestAnimationFrame(loop);
+  }
+  loop();
+}
+
+function stopLive() {
+  if (liveRAF) { cancelAnimationFrame(liveRAF); liveRAF=null; }
+  liveCanvas.style.display='none';
+  liveCanvas.style.left='-9999px';
+  liveCanvas.style.top='-9999px';
+  liveCanvas.style.width='0';
+  liveCanvas.style.height='0';
+  clearGroup(liveGroup);
+  if (liveCard) { liveCard.classList.remove('active-hover'); liveCard=null; }
+  liveItem=null;
+}
+
+// ─────────────────────────────────────────────────────────────
+// DETAIL PANEL
+// ─────────────────────────────────────────────────────────────
+let detItem=null, detAngle=ICOSA_ANGLE, detPhase=0, detRAF=null, detAnimDir=1;
+let detDrag=false, detDX=0, detDY=0;
+
+detailCanvas.addEventListener('mousedown', e=>{detDrag=true;detDX=e.clientX;detDY=e.clientY;});
+window.addEventListener('mousemove', e=>{
+  if(!detDrag) return;
+  detGroup.rotation.y+=(e.clientX-detDX)*0.01;
+  detGroup.rotation.x+=(e.clientY-detDY)*0.01;
+  detDX=e.clientX; detDY=e.clientY;
+});
+window.addEventListener('mouseup',()=>{detDrag=false;});
+
+function openDetail(item) {
+  stopLive();
+  detItem=item;
+  detAngle=ICOSA_ANGLE; detPhase=0;
+  document.getElementById('detail-title').textContent=item.label;
+  document.getElementById('detail-formula').textContent=item.formula;
+  document.getElementById('detail-info').innerHTML=infoHTML(item);
+  document.getElementById('detail-panel').classList.add('open');
+  requestAnimationFrame(() => { resizeDetailRenderer(); });
+  // Show Jitterbug controls only for T2
+  const isJB = isAngleBased(item);
+  document.getElementById('dc-oct').style.display=isJB?'':'none';
+  document.getElementById('dc-ico').style.display=isJB?'':'none';
+  document.getElementById('dc-cubo').style.display=isJB?'':'none';
+  const phaseLabel = document.querySelector('#detail-controls .ctrl-row:nth-child(2) label');
+  if (phaseLabel) phaseLabel.firstChild.textContent = isJB ? 'Angle (0=oct, 60=cubo): ' : 'Phase: ';
+  document.getElementById('dc-phase').min = isJB ? 0 : 0;
+  document.getElementById('dc-phase').max = isJB ? 60 : 360;
+  document.getElementById('dc-phase').value = isJB ? ICOSA_ANGLE : 0;
+  document.getElementById('dc-phase-val').textContent = isJB ? ICOSA_ANGLE.toFixed(1)+'°' : '0°';
+  const isDihedral = item.id.startsWith('DA') || item.id.startsWith('DB');
+  document.getElementById('dc-autorot').checked = !isDihedral;
+  detGroup.rotation.set(isDihedral ? 0.6 : 0.4, isDihedral ? 0.3 : 0.6, 0);
+  rebuildDet();
+  startDetLoop();
+}
+
+function closeDetail() {
+  document.getElementById('detail-panel').classList.remove('open');
+  if (detRAF) { cancelAnimationFrame(detRAF); detRAF=null; }
+  detItem=null;
+}
+window.addEventListener('keydown', e=>{if(e.key==='Escape')closeDetail();});
+document.getElementById('close-btn').addEventListener('click', closeDetail);
+window.addEventListener('resize', ()=>{ if(detItem) resizeDetailRenderer(); });
+
+function rebuildDet() {
+  if (!detItem) return;
+  const showFaces=document.getElementById('dc-faces').checked;
+  const showEdges=document.getElementById('dc-edges').checked;
+  const isJB = isAngleBased(detItem);
+  if (isJB) {
+    buildAny(detGroup, detItem, { angleDeg:detAngle, showFaces, showEdges });
+  } else {
+    buildAny(detGroup, detItem, { phase:detPhase, showFaces, showEdges });
+  }
+}
+
+function startDetLoop() {
+  if (detRAF) cancelAnimationFrame(detRAF);
+  function loop() {
+    if (!detItem) return;
+    const anim=document.getElementById('dc-animate').checked;
+    const autoR=document.getElementById('dc-autorot').checked;
+    const spd=parseFloat(document.getElementById('dc-speed').value);
+    const isJB = isAngleBased(detItem);
+    if (anim && !detDrag) {
+      if (isJB) {
+        detAngle += detAnimDir * spd*0.3;
+        if (detAngle > 60) { detAngle = 60; detAnimDir = -1; }
+        if (detAngle < 0) { detAngle = 0; detAnimDir = 1; }
+        document.getElementById('dc-phase').value = detAngle;
+        document.getElementById('dc-phase-val').textContent = detAngle.toFixed(1)+'°';
+      } else {
+        detPhase += spd*0.014;
+        const deg = ((detPhase*180/Math.PI)%360+360)%360;
+        document.getElementById('dc-phase').value = deg;
+        document.getElementById('dc-phase-val').textContent = deg.toFixed(1)+'°';
+      }
+      rebuildDet();
+    }
+    if (autoR && !detDrag) detGroup.rotation.y += 0.005*spd;
+    detailRenderer.render(detScene, detCam);
+    detRAF = requestAnimationFrame(loop);
+  }
+  loop();
+}
+
+document.getElementById('dc-phase').addEventListener('input', function() {
+  document.getElementById('dc-phase-val').textContent = this.value+'°';
+  const isJB = detItem && isAngleBased(detItem);
+  if (isJB) { detAngle = parseFloat(this.value); }
+  else { detPhase = parseFloat(this.value)*Math.PI/180; }
+  rebuildDet();
+});
+document.getElementById('dc-speed').addEventListener('input', function() {
+  document.getElementById('dc-speed-val').textContent = this.value;
+});
+['dc-faces','dc-edges'].forEach(id=>document.getElementById(id).addEventListener('change',rebuildDet));
+
+document.getElementById('dc-oct').addEventListener('click',  ()=>{ detAngle=0;   syncDetPhase(); rebuildDet(); });
+document.getElementById('dc-ico').addEventListener('click',  ()=>{ detAngle=ICOSA_ANGLE; syncDetPhase(); rebuildDet(); });
+document.getElementById('dc-cubo').addEventListener('click', ()=>{ detAngle=60;  syncDetPhase(); rebuildDet(); });
+function syncDetPhase() {
+  const isJB = detItem && isAngleBased(detItem);
+  const val = isJB ? detAngle : ((detPhase*180/Math.PI)%360+360)%360;
+  document.getElementById('dc-phase').value = val;
+  document.getElementById('dc-phase-val').textContent = val.toFixed(1)+'°';
+}
+
+function infoHTML(item) {
+  const geomNote = item.verified
+    ? `<p style="color:#5d5;background:#0a1a0a;border:1px solid #363;padding:5px 8px;border-radius:4px;margin-bottom:8px;">
+         ✓ <strong>Derived geometry</strong> — vertex positions computed with correct symmetry and vertex-sharing constraints.
+         Polygon counts and connectivity match Verheyen (1989).
+       </p>`
+    : `<p style="color:#aa8;background:#1a1500;border:1px solid #553;padding:5px 8px;border-radius:4px;margin-bottom:8px;">
+         ~ <strong>Schematic only</strong> — polygon counts and symmetry group are correct from Table 4 of Verheyen (1989),
+         but vertex coordinates have not yet been derived from the paper's equations.
+       </p>`;
+  return `
+    ${geomNote}
+    <h3>Formula</h3><p><span class="hl">${item.formula}</span></p>
+    <h3>Symmetry</h3>
+    <p>Group: <span class="hl">${item.group||'—'}</span> &nbsp;·&nbsp;
+       Axes: <span class="hl">${item.axes||'—'}</span> &nbsp;·&nbsp;
+       θ = <span class="hl">${item.angle!=null?item.angle.toFixed(3)+'°':'—'}</span></p>
+    <h3>Composition</h3>
+    <p>${item.gm||'?'}×{${item.m||'?'}} + ${item.gn||'?'}×{${item.n||'?'}}
+       ${item.vertices ? `&nbsp;·&nbsp; <span class="hl">${item.vertices}</span> v &nbsp;·&nbsp; <span class="hl">${item.edges}</span> e` : ''}</p>
+    <h3>Description</h3><p>${item.desc||'—'}</p>
+    ${item.motion ? `<h3>Uniform Motion</h3><p>${item.motion}</p>` : ''}
+    ${item.extremePolyhedra ? `<h3>Extreme Positions</h3><p>${item.extremePolyhedra}</p>` : ''}
+    <p style="margin-top:18px;color:#333;font-size:.7rem;">
+      Source: H. F. Verheyen, <em>Computers Math. Applic.</em> Vol.17 No.1–3, pp.203–250 (1989)</p>`;
+}
+
+// ─────────────────────────────────────────────────────────────
+// SIDEBAR NAV
+// ─────────────────────────────────────────────────────────────
+function jumpTo(id) {
+  document.getElementById(id)?.scrollIntoView({behavior:'smooth',block:'start'});
+  document.querySelectorAll('.nav-btn').forEach(b=>{
+    b.classList.toggle('active', (b.getAttribute('onclick')||'').includes(`'${id}'`));
+  });
+}
+
+document.getElementById('main').addEventListener('scroll', ()=>{
+  const ids=['intro','taxonomy','dihedral-a','dihedral-b','tetrahedral','octahedral',
+             'ico-a','ico-b','ico-c','ico-d','regular','equiradial','chiral'];
+  let cur='';
+  for (const id of ids) {
+    const el=document.getElementById(id);
+    if (el && el.getBoundingClientRect().top < 120) cur=id;
+  }
+  if (cur) document.querySelectorAll('.nav-btn').forEach(b=>{
+    b.classList.toggle('active', (b.getAttribute('onclick')||'').includes(`'${cur}'`));
+  });
+},{passive:true});
+
+// ─────────────────────────────────────────────────────────────
+buildCards();
+</script>
+</body>
+</html>
