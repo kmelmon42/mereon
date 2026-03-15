@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Amplituhedron — Geometry of Scattering</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,500;1,300&family=JetBrains+Mono:wght@300;400&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0a0a0f;
+    color: #c8c4b8;
+    font-family: 'Cormorant Garamond', serif;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  #canvas-container {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+  }
+
+  canvas { display: block; }
+
+  .overlay {
+    position: absolute;
+    z-index: 10;
+    pointer-events: none;
+  }
+
+  .title-block {
+    top: 28px;
+    left: 32px;
+  }
+
+  .title-block h1 {
+    font-size: 28px;
+    font-weight: 300;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #e8e4d8;
+    margin-bottom: 4px;
+  }
+
+  .title-block .subtitle {
+    font-size: 14px;
+    font-weight: 300;
+    font-style: italic;
+    color: #8a8678;
+    letter-spacing: 0.05em;
+  }
+
+  .info-panel {
+    bottom: 28px;
+    left: 32px;
+    max-width: 420px;
+    pointer-events: auto;
+  }
+
+  .info-panel .description {
+    font-size: 15px;
+    font-weight: 300;
+    line-height: 1.65;
+    color: #9a968a;
+    margin-bottom: 16px;
+  }
+
+  .info-panel .math {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: #6a9faa;
+    letter-spacing: 0.03em;
+    background: rgba(106,159,170,0.08);
+    padding: 10px 14px;
+    border-left: 2px solid rgba(106,159,170,0.3);
+    margin-bottom: 16px;
+    line-height: 1.7;
+  }
+
+  .controls {
+    bottom: 28px;
+    right: 32px;
+    pointer-events: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+  }
+
+  .control-group {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+
+  .control-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: #5a5850;
+    margin-right: 8px;
+  }
+
+  .btn {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: #8a8678;
+    padding: 7px 14px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .btn:hover {
+    background: rgba(255,255,255,0.08);
+    color: #c8c4b8;
+    border-color: rgba(255,255,255,0.2);
+  }
+
+  .btn.active {
+    background: rgba(106,159,170,0.15);
+    border-color: rgba(106,159,170,0.4);
+    color: #8ac4d0;
+  }
+
+  .mode-indicator {
+    top: 28px;
+    right: 32px;
+    text-align: right;
+  }
+
+  .mode-indicator .mode-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: #6a9faa;
+  }
+
+  .mode-indicator .mode-detail {
+    font-size: 13px;
+    font-weight: 300;
+    color: #5a5850;
+    margin-top: 4px;
+  }
+
+  .amplitude-display {
+    position: absolute;
+    top: 50%;
+    right: 32px;
+    transform: translateY(-50%);
+    z-index: 10;
+    text-align: right;
+    pointer-events: none;
+  }
+
+  .amplitude-display .amp-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: #4a4840;
+    margin-bottom: 4px;
+  }
+
+  .amplitude-display .amp-value {
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 36px;
+    font-weight: 300;
+    font-style: italic;
+    color: #6a9faa;
+    opacity: 0.7;
+  }
+
+  .grain-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    pointer-events: none;
+    opacity: 0.03;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+</style>
+</head>
+<body>
+
+<div id="canvas-container"></div>
+<div class="grain-overlay"></div>
+
+<div class="overlay title-block">
+  <h1>Amplituhedron</h1>
+  <div class="subtitle">The geometry underlying particle scattering</div>
+</div>
+
+<div class="overlay mode-indicator">
+  <div class="mode-name" id="modeName">k=1 Cyclic Polytope</div>
+  <div class="mode-detail" id="modeDetail">n=6 particles · projected to 3D</div>
+</div>
+
+<div class="overlay info-panel">
+  <div class="description" id="infoText">
+    The simplest amplituhedron (k=1) is a cyclic polytope — the convex hull of n points
+    on a moment curve in projective space. Its volume encodes the tree-level scattering
+    amplitude for n gluons. What you see is a 3D projection of this higher-dimensional jewel.
+  </div>
+  <div class="math" id="mathText">
+    A(n,k=1,m) ⊂ P^m — cyclic polytope<br>
+    vertices: Z_i = (1, t_i, t_i², ..., t_i^m)<br>
+    Vol(A) = tree-level amplitude M_n
+  </div>
+</div>
+
+<div class="overlay controls">
+  <div class="control-group">
+    <span class="control-label">particles</span>
+    <button class="btn" data-n="5" onclick="setN(5)">5</button>
+    <button class="btn active" data-n="6" onclick="setN(6)">6</button>
+    <button class="btn" data-n="7" onclick="setN(7)">7</button>
+    <button class="btn" data-n="8" onclick="setN(8)">8</button>
+    <button class="btn" data-n="10" onclick="setN(10)">10</button>
+  </div>
+  <div class="control-group">
+    <span class="control-label">mode</span>
+    <button class="btn active" data-mode="polytope" onclick="setMode('polytope')">k=1 polytope</button>
+    <button class="btn" data-mode="grassmannian" onclick="setMode('grassmannian')">k=2 lines</button>
+    <button class="btn" data-mode="triangulation" onclick="setMode('triangulation')">BCFW cells</button>
+  </div>
+</div>
+
+<div class="amplitude-display">
+  <div class="amp-label">volume ≡ amplitude</div>
+  <div class="amp-value" id="ampValue" style="font-size:14px; font-style:normal; font-family:'JetBrains Mono',monospace; color:#4a6a72;">drag to rotate · scroll to zoom</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ─── SCENE SETUP ───
+const container = document.getElementById('canvas-container');
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setClearColor(0x0a0a0f, 1);
+container.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+camera.position.set(0, 0, 6);
+
+// fog for depth
+scene.fog = new THREE.FogExp2(0x0a0a0f, 0.08);
+
+// ─── STATE ───
+let currentN = 6;
+let currentMode = 'polytope';
+let meshGroup = new THREE.Group();
+scene.add(meshGroup);
+// ─── DRAG ROTATION ───
+let isDragging = false;
+let prevMouseX = 0, prevMouseY = 0;
+let rotX = 0.3, rotY = 0.4;
+
+renderer.domElement.addEventListener('pointerdown', (e) => {
+  isDragging = true;
+  prevMouseX = e.clientX;
+  prevMouseY = e.clientY;
+  renderer.domElement.style.cursor = 'grabbing';
+});
+window.addEventListener('pointerup', () => {
+  isDragging = false;
+  renderer.domElement.style.cursor = 'grab';
+});
+window.addEventListener('pointermove', (e) => {
+  if (!isDragging) return;
+  const dx = e.clientX - prevMouseX;
+  const dy = e.clientY - prevMouseY;
+  rotY += dx * 0.007;
+  rotX += dy * 0.007;
+  rotX = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, rotX));
+  prevMouseX = e.clientX;
+  prevMouseY = e.clientY;
+});
+renderer.domElement.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  camera.position.z = Math.max(2.5, Math.min(12, camera.position.z + e.deltaY * 0.005));
+}, { passive: false });
+renderer.domElement.style.cursor = 'grab';
+
+// Touch support
+renderer.domElement.addEventListener('touchstart', (e) => {
+  if (e.touches.length === 1) {
+    isDragging = true;
+    prevMouseX = e.touches[0].clientX;
+    prevMouseY = e.touches[0].clientY;
+  }
+}, { passive: true });
+renderer.domElement.addEventListener('touchmove', (e) => {
+  if (!isDragging || e.touches.length !== 1) return;
+  const dx = e.touches[0].clientX - prevMouseX;
+  const dy = e.touches[0].clientY - prevMouseY;
+  rotY += dx * 0.007;
+  rotX += dy * 0.007;
+  rotX = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, rotX));
+  prevMouseX = e.touches[0].clientX;
+  prevMouseY = e.touches[0].clientY;
+}, { passive: true });
+renderer.domElement.addEventListener('touchend', () => { isDragging = false; });
+
+// ─── MATERIALS ───
+const faceMaterial = new THREE.MeshPhysicalMaterial({
+  color: 0x2a5a6a,
+  transparent: true,
+  opacity: 0.18,
+  side: THREE.DoubleSide,
+  roughness: 0.6,
+  metalness: 0.1,
+  depthWrite: false,
+});
+
+const edgeMaterial = new THREE.LineBasicMaterial({
+  color: 0x5ab8cc,
+  transparent: true,
+  opacity: 0.5,
+});
+
+const vertexMaterial = new THREE.MeshBasicMaterial({
+  color: 0x8ae0f0,
+});
+
+const innerEdgeMaterial = new THREE.LineBasicMaterial({
+  color: 0xcc8855,
+  transparent: true,
+  opacity: 0.35,
+});
+
+const innerFaceMaterial = new THREE.MeshPhysicalMaterial({
+  color: 0x8a5530,
+  transparent: true,
+  opacity: 0.12,
+  side: THREE.DoubleSide,
+  roughness: 0.8,
+  depthWrite: false,
+});
+
+// ─── LIGHTING ───
+const ambientLight = new THREE.AmbientLight(0x334455, 0.6);
+scene.add(ambientLight);
+
+const keyLight = new THREE.DirectionalLight(0x6a9faa, 0.8);
+keyLight.position.set(5, 5, 5);
+scene.add(keyLight);
+
+const fillLight = new THREE.DirectionalLight(0x443322, 0.3);
+fillLight.position.set(-3, -2, 4);
+scene.add(fillLight);
+
+const rimLight = new THREE.PointLight(0x4488aa, 0.4, 20);
+rimLight.position.set(0, 0, -5);
+scene.add(rimLight);
+
+// ─── GEOMETRY GENERATORS ───
+
+// Generate points on the moment curve (cyclic polytope vertices)
+function momentCurvePoints(n, dim) {
+  const pts = [];
+  for (let i = 0; i < n; i++) {
+    const t = -1 + 2 * i / (n - 1);  // spread from -1 to 1
+    if (dim === 3) {
+      pts.push(new THREE.Vector3(t, t * t - 0.5, t * t * t));
+    } else {
+      // 4D projected to 3D via stereographic-like projection
+      const x = t;
+      const y = t * t;
+      const z = t * t * t;
+      const w = t * t * t * t;
+      const scale = 1.5 / (1.2 + 0.3 * w);
+      pts.push(new THREE.Vector3(x * scale, (y - 0.5) * scale, z * scale));
+    }
+  }
+  return pts;
+}
+
+// Compute convex hull faces (simple for small n using gift wrapping on projected 3D points)
+function convexHullFaces(pts) {
+  const n = pts.length;
+  const faces = [];
+
+  // Brute force: for each triple, check if all other points are on the same side
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      for (let k = j + 1; k < n; k++) {
+        const a = pts[i], b = pts[j], c = pts[k];
+        const ab = new THREE.Vector3().subVectors(b, a);
+        const ac = new THREE.Vector3().subVectors(c, a);
+        const normal = new THREE.Vector3().crossVectors(ab, ac);
+        if (normal.length() < 1e-10) continue;
+
+        let pos = 0, neg = 0;
+        let isHullFace = true;
+        for (let l = 0; l < n; l++) {
+          if (l === i || l === j || l === k) continue;
+          const d = new THREE.Vector3().subVectors(pts[l], a).dot(normal);
+          if (d > 1e-8) pos++;
+          if (d < -1e-8) neg++;
+          if (pos > 0 && neg > 0) { isHullFace = false; break; }
+        }
+        if (isHullFace) faces.push([i, j, k]);
+      }
+    }
+  }
+  return faces;
+}
+
+// ─── BUILD POLYTOPE MODE ───
+function buildPolytope(n) {
+  const pts = momentCurvePoints(n, 4);
+  const faces = convexHullFaces(pts);
+
+  // Scale points
+  const scale = 1.8;
+  pts.forEach(p => p.multiplyScalar(scale));
+
+  // Faces
+  const geom = new THREE.BufferGeometry();
+  const vertices = [];
+  faces.forEach(([a, b, c]) => {
+    vertices.push(pts[a].x, pts[a].y, pts[a].z);
+    vertices.push(pts[b].x, pts[b].y, pts[b].z);
+    vertices.push(pts[c].x, pts[c].y, pts[c].z);
+  });
+  geom.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+  geom.computeVertexNormals();
+  const mesh = new THREE.Mesh(geom, faceMaterial);
+  meshGroup.add(mesh);
+
+  // Edges from hull faces
+  const edgeSet = new Set();
+  faces.forEach(([a, b, c]) => {
+    const edges = [[a,b],[b,c],[a,c]];
+    edges.forEach(([e1, e2]) => {
+      const key = Math.min(e1,e2) + '_' + Math.max(e1,e2);
+      edgeSet.add(key);
+    });
+  });
+  edgeSet.forEach(key => {
+    const [a, b] = key.split('_').map(Number);
+    const lineGeom = new THREE.BufferGeometry().setFromPoints([pts[a], pts[b]]);
+    meshGroup.add(new THREE.Line(lineGeom, edgeMaterial));
+  });
+
+  // Vertices as spheres
+  pts.forEach((p, idx) => {
+    const sphereGeom = new THREE.SphereGeometry(0.04, 12, 12);
+    const sphere = new THREE.Mesh(sphereGeom, vertexMaterial);
+    sphere.position.copy(p);
+    sphere.userData = { index: idx, basePos: p.clone() };
+    meshGroup.add(sphere);
+  });
+
+  return { pts, faces };
+}
+
+// ─── BUILD GRASSMANNIAN MODE (k=2) ───
+function buildGrassmannian(n) {
+  // For k=2, the amplituhedron lives in the Grassmannian Gr(2, n)
+  // We visualize it as a space of lines: each "point" is a line through
+  // pairs of moment-curve vertices, shown as tubes
+  const pts = momentCurvePoints(n, 4);
+  const scale = 1.8;
+  pts.forEach(p => p.multiplyScalar(scale));
+
+  // Show the outer vertex polytope faintly
+  const outerEdgeMat = new THREE.LineBasicMaterial({
+    color: 0x5ab8cc, transparent: true, opacity: 0.15
+  });
+  for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n;
+    const lineGeom = new THREE.BufferGeometry().setFromPoints([pts[i], pts[j]]);
+    meshGroup.add(new THREE.Line(lineGeom, outerEdgeMat));
+  }
+
+  // Vertices
+  pts.forEach((p, idx) => {
+    const sphereGeom = new THREE.SphereGeometry(0.03, 8, 8);
+    const sphere = new THREE.Mesh(sphereGeom, new THREE.MeshBasicMaterial({
+      color: 0x5ab8cc, transparent: true, opacity: 0.4
+    }));
+    sphere.position.copy(p);
+    meshGroup.add(sphere);
+  });
+
+  // Lines between non-adjacent pairs represent Grassmannian elements
+  // Color-code by "positivity" — adjacent lines warm, crossing lines cool
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 2; j < n; j++) {
+      if (i === 0 && j === n - 1) continue;  // skip for cyclic adjacency
+      const mid = new THREE.Vector3().addVectors(pts[i], pts[j]).multiplyScalar(0.5);
+      const dir = new THREE.Vector3().subVectors(pts[j], pts[i]);
+      const len = dir.length();
+      dir.normalize();
+
+      // Create a thin tube
+      const curve = new THREE.LineCurve3(pts[i], pts[j]);
+      const tubeGeom = new THREE.TubeGeometry(curve, 8, 0.012, 6, false);
+
+      const separation = Math.min(j - i, n - (j - i));
+      const hue = 0.08 + 0.12 * (separation / (n / 2));
+      const color = new THREE.Color().setHSL(hue, 0.6, 0.45);
+
+      const tubeMat = new THREE.MeshPhysicalMaterial({
+        color: color,
+        transparent: true,
+        opacity: 0.3 + 0.15 * (1 - separation / (n / 2)),
+        roughness: 0.5,
+        metalness: 0.2,
+      });
+      const tube = new THREE.Mesh(tubeGeom, tubeMat);
+      tube.userData = { i, j, separation };
+      meshGroup.add(tube);
+    }
+  }
+
+  return { pts };
+}
+
+// ─── BUILD BCFW TRIANGULATION MODE ───
+function buildTriangulation(n) {
+  const pts = momentCurvePoints(n, 4);
+  const scale = 1.8;
+  pts.forEach(p => p.multiplyScalar(scale));
+  const faces = convexHullFaces(pts);
+
+  // Show full polytope faintly
+  const ghostMat = new THREE.MeshPhysicalMaterial({
+    color: 0x2a5a6a, transparent: true, opacity: 0.06,
+    side: THREE.DoubleSide, depthWrite: false,
+  });
+  const geom = new THREE.BufferGeometry();
+  const verts = [];
+  faces.forEach(([a, b, c]) => {
+    verts.push(pts[a].x, pts[a].y, pts[a].z);
+    verts.push(pts[b].x, pts[b].y, pts[b].z);
+    verts.push(pts[c].x, pts[c].y, pts[c].z);
+  });
+  geom.setAttribute('position', new THREE.Float32BufferAttribute(verts, 3));
+  geom.computeVertexNormals();
+  meshGroup.add(new THREE.Mesh(geom, ghostMat));
+
+  // BCFW-like triangulation: fan from vertex 0
+  // Each cell is a simplex (tetrahedron in 3D) from vertex 0 to a face
+  const centroid = new THREE.Vector3();
+  pts.forEach(p => centroid.add(p));
+  centroid.divideScalar(n);
+
+  const cellColors = [0xcc6644, 0x44aa88, 0x7766cc, 0xaaaa44, 0xcc4488, 0x44ccaa, 0x8844cc, 0xccaa44];
+
+  // Fan triangulation from point 0
+  for (let i = 1; i < n - 1; i++) {
+    const a = 0, b = i, c = i + 1;
+    // Draw the triangle as a colored cell
+    const cellGeom = new THREE.BufferGeometry();
+    const cv = [
+      pts[a].x, pts[a].y, pts[a].z,
+      pts[b].x, pts[b].y, pts[b].z,
+      pts[c].x, pts[c].y, pts[c].z,
+    ];
+    cellGeom.setAttribute('position', new THREE.Float32BufferAttribute(cv, 3));
+    cellGeom.computeVertexNormals();
+
+    const cellMat = new THREE.MeshPhysicalMaterial({
+      color: cellColors[(i - 1) % cellColors.length],
+      transparent: true,
+      opacity: 0.2,
+      side: THREE.DoubleSide,
+      depthWrite: false,
+    });
+    meshGroup.add(new THREE.Mesh(cellGeom, cellMat));
+
+    // Edge from 0 to each vertex in this cell
+    const edgeColor = new THREE.Color(cellColors[(i - 1) % cellColors.length]);
+    const cellEdgeMat = new THREE.LineBasicMaterial({
+      color: edgeColor, transparent: true, opacity: 0.6
+    });
+
+    [[a,b],[b,c],[a,c]].forEach(([e1,e2]) => {
+      const lg = new THREE.BufferGeometry().setFromPoints([pts[e1], pts[e2]]);
+      meshGroup.add(new THREE.Line(lg, cellEdgeMat));
+    });
+  }
+
+  // Outer edges
+  for (let i = 0; i < n; i++) {
+    const j = (i + 1) % n;
+    const lg = new THREE.BufferGeometry().setFromPoints([pts[i], pts[j]]);
+    meshGroup.add(new THREE.Line(lg, edgeMaterial));
+  }
+
+  // Vertices
+  pts.forEach((p, idx) => {
+    const sg = new THREE.SphereGeometry(0.045, 12, 12);
+    const color = idx === 0 ? 0xffcc66 : 0x8ae0f0;
+    const s = new THREE.Mesh(sg, new THREE.MeshBasicMaterial({ color }));
+    s.position.copy(p);
+    meshGroup.add(s);
+  });
+
+  return { pts, faces };
+}
+
+// ─── REBUILD ───
+function rebuild() {
+  // Clear
+  while (meshGroup.children.length > 0) {
+    const child = meshGroup.children[0];
+    if (child.geometry) child.geometry.dispose();
+    if (child.material) child.material.dispose();
+    meshGroup.remove(child);
+  }
+
+  if (currentMode === 'polytope') {
+    buildPolytope(currentN);
+    document.getElementById('modeName').textContent = 'k=1 Cyclic Polytope';
+    document.getElementById('modeDetail').textContent = `n=${currentN} particles · projected from 4D`;
+    document.getElementById('infoText').textContent =
+      `The simplest amplituhedron (k=1) is a cyclic polytope — the convex hull of ${currentN} points on a moment curve in projective space. Its volume directly computes the tree-level scattering amplitude for ${currentN} gluons. The shape you see is a 3D shadow of a 4-dimensional jewel.`;
+    document.getElementById('mathText').innerHTML =
+      `A(${currentN},1,4) ⊂ Gr(1,5) ≅ P⁴ — cyclic polytope<br>` +
+      `Z_i = (1, t_i, t_i², t_i³, t_i⁴) on moment curve<br>` +
+      `Vol(A) = Σ BCFW terms = M_${currentN}`;
+  } else if (currentMode === 'grassmannian') {
+    buildGrassmannian(currentN);
+    document.getElementById('modeName').textContent = 'k=2 Grassmannian';
+    document.getElementById('modeDetail').textContent = `n=${currentN} · space of lines in Gr(2,4)`;
+    document.getElementById('infoText').textContent =
+      `For k=2, the amplituhedron lives in the Grassmannian of 2-planes — a space of lines, not points. Each colored tube represents a line through two external vertices. The positive region of this space, bounded by positivity constraints, encodes next-to-MHV amplitudes.`;
+    document.getElementById('mathText').innerHTML =
+      `A(${currentN},2,4) ⊂ Gr(2,6) — positive Grassmannian<br>` +
+      `dim = 2·(6−2) = 8, projected to 3D<br>` +
+      `line color ∝ positroid cell depth`;
+  } else {
+    buildTriangulation(currentN);
+    document.getElementById('modeName').textContent = 'BCFW Triangulation';
+    document.getElementById('modeDetail').textContent = `n=${currentN} · ${currentN - 2} simplex cells`;
+    document.getElementById('infoText').textContent =
+      `The BCFW recursion decomposes the amplituhedron into simplex cells — each cell is a "term" in the amplitude. Different decompositions give different-looking sums, but the total volume is always the same. The gold vertex is the recursion anchor.`;
+    document.getElementById('mathText').innerHTML =
+      `M_${currentN} = Σ_{cells} Vol(Δ_i)<br>` +
+      `${currentN - 2} BCFW cells (fan triangulation)<br>` +
+      `each cell = one on-shell diagram`;
+  }
+}
+
+// ─── CONTROLS ───
+window.setN = function(n) {
+  currentN = n;
+  document.querySelectorAll('[data-n]').forEach(b => b.classList.remove('active'));
+  document.querySelector(`[data-n="${n}"]`).classList.add('active');
+  rebuild();
+};
+
+window.setMode = function(mode) {
+  currentMode = mode;
+  document.querySelectorAll('[data-mode]').forEach(b => b.classList.remove('active'));
+  document.querySelector(`[data-mode="${mode}"]`).classList.add('active');
+  rebuild();
+};
+
+// ─── ANIMATE ───
+function animate() {
+  requestAnimationFrame(animate);
+
+  meshGroup.rotation.x = rotX;
+  meshGroup.rotation.y = rotY;
+
+  renderer.render(scene, camera);
+}
+
+// ─── RESIZE ───
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// ─── INIT ───
+rebuild();
+animate();
+</script>
+</body>
+</html>
