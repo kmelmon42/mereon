@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>144 Polyhedron — Three Parent Polyhedra</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:#06060e;color:#d8dce6;overflow:hidden;}
+#ui{position:fixed;top:0;left:0;background:rgba(8,8,18,0.97);padding:18px;z-index:100;width:280px;height:100vh;overflow-y:auto;border-right:1px solid rgba(255,255,255,0.06);}
+#ui::-webkit-scrollbar{width:4px;} #ui::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:2px;}
+h1{font-size:0.82rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#8ab4f8;margin-bottom:4px;}
+.sub{font-size:0.66rem;color:#556;line-height:1.5;margin-bottom:14px;}
+h2{font-size:0.62rem;font-weight:500;color:#445;margin:12px 0 6px;letter-spacing:0.1em;text-transform:uppercase;padding-top:10px;border-top:1px solid rgba(255,255,255,0.04);}
+.cr{margin:5px 0;font-size:0.7rem;display:flex;align-items:center;gap:8px;}
+.cr label{display:flex;align-items:center;gap:6px;cursor:pointer;color:#778;}
+input[type=checkbox]{accent-color:#8ab4f8;}
+input[type=range]{width:100%;accent-color:#8ab4f8;height:3px;}
+.val{font-family:'JetBrains Mono',monospace;font-size:0.62rem;color:#8ab4f8;min-width:34px;text-align:right;}
+.sw{width:9px;height:9px;border-radius:2px;display:inline-block;}
+.stats{font-family:'JetBrains Mono',monospace;font-size:0.58rem;color:#445;margin-top:10px;padding:10px;background:rgba(0,0,0,0.3);border-radius:6px;line-height:1.8;}
+.stats .hl{color:#8ab4f8;}
+#cv{width:100vw;height:100vh;}
+</style>
+</head>
+<body>
+<div id="ui">
+<h1>Three Parent Polyhedra</h1>
+<div class="sub">
+The 144 Polyhedron is the intersection of these three. Each contributes 48 of the 144 faces.
+</div>
+
+<h2>Show / Hide</h2>
+<div class="cr"><label><input type="checkbox" id="showCube" checked> <span class="sw" style="background:#e85050"></span> Cube — 6 faces, {100}</label></div>
+<div class="cr"><label><input type="checkbox" id="showOct" checked> <span class="sw" style="background:#f0a030"></span> Octahedron — 8 faces, {111}</label></div>
+<div class="cr"><label><input type="checkbox" id="showRD" checked> <span class="sw" style="background:#38b89a"></span> Rhombic Dodecahedron — 12 faces, {110}</label></div>
+<div class="cr"><label><input type="checkbox" id="show144"> <span class="sw" style="background:#5577aa"></span> 144 Polyhedron (ghost)</label></div>
+
+<h2>Display</h2>
+<div class="cr"><label><input type="checkbox" id="showEdges" checked> Edges</label></div>
+<div class="cr"><label><input type="checkbox" id="showVerts"> Vertices</label></div>
+<div class="cr"><label><input type="checkbox" id="autoRot" checked> Auto rotate</label></div>
+<div class="cr"><label>Opacity</label><input type="range" id="opac" min="0.05" max="0.8" value="0.25" step="0.05"><span class="val" id="opacV">0.25</span></div>
+
+<div class="stats">
+<strong>144 = Cube ∩ Octahedron ∩ RD</strong><br><br>
+<span class="hl">Cube</span><br>
+ 6 faces · 8 verts · 12 edges<br>
+ d = 1/2 · verts at (±½,±½,±½)<br><br>
+<span class="hl">Octahedron</span><br>
+ 8 faces · 6 verts · 12 edges<br>
+ d = 1/√3 · verts at (±1,0,0) etc.<br><br>
+<span class="hl">Rhombic Dodecahedron</span><br>
+ 12 faces · 14 verts · 24 edges<br>
+ d = 1/√2 · verts: 8 cube + 6 oct type<br><br>
+The RD's 14 vertices are exactly the<br>
+union of the cube and oct vertices.
+</div>
+</div>
+<div id="cv"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+'use strict';
+const S2=Math.sqrt(2);
+
+function $(id){return document.getElementById(id);}
+
+// ═══ THREE.JS ═══
+const cv=document.getElementById('cv'),sc=new THREE.Scene();
+sc.background=new THREE.Color(0x06060e);
+const cam=new THREE.PerspectiveCamera(50,innerWidth/innerHeight,.1,1000);
+cam.position.set(0,0,4);
+const ren=new THREE.WebGLRenderer({antialias:true});
+ren.setSize(innerWidth,innerHeight);ren.setPixelRatio(Math.min(devicePixelRatio,2));cv.appendChild(ren.domElement);
+sc.add(new THREE.AmbientLight(0xffffff,.5));
+const dl1=new THREE.DirectionalLight(0xffffff,.6);dl1.position.set(5,5,5);sc.add(dl1);
+const dl2=new THREE.DirectionalLight(0xffffff,.3);dl2.position.set(-3,-2,3);sc.add(dl2);
+const MG=new THREE.Group();sc.add(MG);
+
+// ═══ POLYHEDRA DATA ═══
+
+// Cube: vertices at (±0.5, ±0.5, ±0.5)
+const cubeV=[];
+for(let sx of[-1,1])for(let sy of[-1,1])for(let sz of[-1,1])cubeV.push([sx*.5,sy*.5,sz*.5]);
+// Faces: 6 quads
+const cubeF=[
+  [0,2,6,4],[1,5,7,3],  // -x, +x
+  [0,4,5,1],[2,3,7,6],  // -y, +y
+  [0,1,3,2],[4,6,7,5],  // -z, +z
+];
+
+// Octahedron: vertices at (±1,0,0), (0,±1,0), (0,0,±1)
+const octV=[[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]];
+const octF=[[0,2,4],[0,4,3],[0,3,5],[0,5,2],[1,4,2],[1,3,4],[1,5,3],[1,2,5]];
+
+// Rhombic Dodecahedron: 8 cube-type + 6 oct-type vertices
+const rdV=[];
+for(let sx of[-1,1])for(let sy of[-1,1])for(let sz of[-1,1])rdV.push([sx*.5,sy*.5,sz*.5]); // 0-7
+rdV.push([1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]); // 8-13
+
+// RD faces: 12 rhombi, each with alternating cube/oct vertices
+// For each {110} direction, the face connects 2 cube verts + 2 oct verts
+const rdF=[
+  // XY belt
+  [0+3,8,0+7,10],  // Hmm let me just hardcode these properly
+];
+
+// Actually let me compute RD faces properly
+// Each face normal is a {110} direction. For normal (1,1,0)/√2:
+// vertices satisfy x+y = 1: cube(0.5,0.5,±0.5) and oct(1,0,0),(0,1,0)
+// Map: cubeV indices for (0.5,0.5,0.5)=idx7, (0.5,0.5,-0.5)=idx6
+//       octV idx 0=(1,0,0)->rdV[8], octV idx 2=(0,1,0)->rdV[10]
+
+function findRDVert(target){
+  for(let i=0;i<rdV.length;i++){
+    if(Math.abs(rdV[i][0]-target[0])<.01&&Math.abs(rdV[i][1]-target[1])<.01&&Math.abs(rdV[i][2]-target[2])<.01) return i;
+  }
+  return -1;
+}
+
+const rdFaces=[];
+const rdNormals=[
+  [1,1,0],[1,-1,0],[-1,1,0],[-1,-1,0],
+  [1,0,1],[1,0,-1],[-1,0,1],[-1,0,-1],
+  [0,1,1],[0,1,-1],[0,-1,1],[0,-1,-1]
+];
+for(const rn of rdNormals){
+  // Find 4 verts on this plane: n·v = 1
+  const onPlane=[];
+  for(let i=0;i<rdV.length;i++){
+    const dot=rdV[i][0]*rn[0]+rdV[i][1]*rn[1]+rdV[i][2]*rn[2];
+    if(Math.abs(dot-1)<.01) onPlane.push(i);
+  }
+  if(onPlane.length===4){
+    // Sort by angle around centroid for proper winding
+    const cx=onPlane.reduce((s,i)=>s+rdV[i][0],0)/4;
+    const cy=onPlane.reduce((s,i)=>s+rdV[i][1],0)/4;
+    const cz=onPlane.reduce((s,i)=>s+rdV[i][2],0)/4;
+    const nn=Math.sqrt(rn[0]*rn[0]+rn[1]*rn[1]+rn[2]*rn[2]);
+    const nx=rn[0]/nn,ny=rn[1]/nn,nz=rn[2]/nn;
+    // Find a reference direction in the plane
+    const ref=[rdV[onPlane[0]][0]-cx,rdV[onPlane[0]][1]-cy,rdV[onPlane[0]][2]-cz];
+    const perp=[ny*ref[2]-nz*ref[1],nz*ref[0]-nx*ref[2],nx*ref[1]-ny*ref[0]];
+    const angles=onPlane.map(i=>{
+      const d=[rdV[i][0]-cx,rdV[i][1]-cy,rdV[i][2]-cz];
+      return Math.atan2(d[0]*perp[0]+d[1]*perp[1]+d[2]*perp[2],d[0]*ref[0]+d[1]*ref[1]+d[2]*ref[2]);
+    });
+    const sorted=onPlane.map((v,i)=>({v,a:angles[i]})).sort((a,b)=>a.a-b.a).map(x=>x.v);
+    rdFaces.push(sorted);
+  }
+}
+
+// ═══ 144 POLYHEDRON (ghost) ═══
+function isFCC(x,y,z){return(x+y+z)%2===0;}
+function vadd(a,b){return[a[0]+b[0],a[1]+b[1],a[2]+b[2]];}
+function vsub(a,b){return[a[0]-b[0],a[1]-b[1],a[2]-b[2]];}
+function vmul(v,s){return[v[0]*s,v[1]*s,v[2]*s];}
+function vdot(a,b){return a[0]*b[0]+a[1]*b[1]+a[2]*b[2];}
+function vcross(a,b){return[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];}
+function vlen(v){return Math.sqrt(vdot(v,v));}
+function vnorm(v){const l=vlen(v);return l?vmul(v,1/l):[0,0,0];}
+function vavg(...vs){const n=vs.length;return[vs.reduce((s,v)=>s+v[0],0)/n,vs.reduce((s,v)=>s+v[1],0)/n,vs.reduce((s,v)=>s+v[2],0)/n];}
+function nearFCC(p){let b=null,bd=9;for(let dx=-2;dx<=2;dx++)for(let dy=-2;dy<=2;dy++)for(let dz=-2;dz<=2;dz++){const c=[Math.round(p[0])+dx,Math.round(p[1])+dy,Math.round(p[2])+dz];if(!isFCC(...c))continue;const d=vlen(vsub(c,p));if(d<bd){bd=d;b=c;}}return b;}
+const OUT=[[4,0,0],[-4,0,0],[0,4,0],[0,-4,0],[0,0,4],[0,0,-4]];
+const FO=[[0,2,4],[0,4,3],[0,3,5],[0,5,2],[1,4,2],[1,3,4],[1,5,3],[1,2,5]];
+const allV=[],allT=[],vm={};
+function aV(v){const r=[Math.round(v[0]),Math.round(v[1]),Math.round(v[2])],k=r.join(',');if(!(k in vm)){vm[k]=allV.length;allV.push(r);}return vm[k];}
+for(const f of FO){const A=OUT[f[0]],B=OUT[f[1]],C=OUT[f[2]],fn=vnorm(vavg(A,B,C)),mAB=vavg(A,B),mBC=vavg(B,C),mCA=vavg(C,A);
+const cds=[[2,2,2],[-2,-2,-2],[2,2,-2],[2,-2,2],[-2,2,2],[2,-2,-2],[-2,2,-2],[-2,-2,2]];let O=null,ba=-9;
+for(const c of cds){const cn=vnorm(c),a=vdot(cn,fn);if(a>ba){ba=a;O=c;}}if(!O||ba<=0.9)O=nearFCC(vavg(A,B,C));
+for(const[P,Q,R] of[[A,mAB,O],[mAB,B,O],[B,mBC,O],[mBC,C,O],[C,mCA,O],[mCA,A,O]]){const cf=vavg(P,Q,R),cp=vadd(cf,vmul(fn,.5)),ct=nearFCC(cp);
+const pI=aV(P),qI=aV(Q),rI=aV(R),cI=aV(ct);allT.push([pI,qI,cI],[qI,rI,cI],[rI,pI,cI]);}}
+const VU=allV.map(v=>[v[0]/4,v[1]/4,v[2]/4]);
+
+// ═══ RENDER ═══
+function rebuild(){
+  while(MG.children.length)MG.remove(MG.children[0]);
+  const showC=$('showCube').checked,showO=$('showOct').checked,showR=$('showRD').checked;
+  const showE=$('showEdges').checked,showV=$('showVerts').checked,show144=$('show144').checked;
+  const opacity=+$('opac').value;
+
+  function addPoly(verts,color,edgeColor,op){
+    const pos=[];
+    for(let i=1;i<verts.length-1;i++){
+      pos.push(...verts[0],...verts[i],...verts[i+1]);
+    }
+    const g=new THREE.BufferGeometry();
+    g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.computeVertexNormals();
+    MG.add(new THREE.Mesh(g,new THREE.MeshStandardMaterial({
+      color,side:THREE.DoubleSide,transparent:true,opacity:op,roughness:.35,metalness:.1,
+      depthWrite:false
+    })));
+    if(showE){
+      const pts=[...verts,verts[0]].map(v=>new THREE.Vector3(...v));
+      MG.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),
+        new THREE.LineBasicMaterial({color:edgeColor,linewidth:1})));
+    }
+  }
+
+  function addSphere(pos,color,size){
+    const g=new THREE.SphereGeometry(size,10,10);
+    const m=new THREE.Mesh(g,new THREE.MeshStandardMaterial({color,emissive:color,emissiveIntensity:.3}));
+    m.position.set(...pos);MG.add(m);
+  }
+
+  // 144 ghost
+  if(show144){
+    const pos=[];
+    allT.forEach(tri=>{pos.push(...VU[tri[0]],...VU[tri[1]],...VU[tri[2]]);});
+    const g=new THREE.BufferGeometry();
+    g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.computeVertexNormals();
+    MG.add(new THREE.Mesh(g,new THREE.MeshStandardMaterial({
+      color:0x5577aa,side:THREE.DoubleSide,transparent:true,opacity:0.06,depthWrite:false
+    })));
+    const ep=[];
+    allT.forEach(tri=>{const v0=VU[tri[0]],v1=VU[tri[1]],v2=VU[tri[2]];ep.push(...v0,...v1,...v1,...v2,...v2,...v0);});
+    const eg=new THREE.BufferGeometry();eg.setAttribute('position',new THREE.Float32BufferAttribute(ep,3));
+    MG.add(new THREE.LineSegments(eg,new THREE.LineBasicMaterial({color:0x334466,transparent:true,opacity:0.12})));
+  }
+
+  // Cube
+  if(showC){
+    cubeF.forEach(f=>addPoly(f.map(i=>cubeV[i]),0xe85050,0xff7070,opacity));
+    if(showV) cubeV.forEach(v=>addSphere(v,0xe85050,0.02));
+  }
+
+  // Octahedron
+  if(showO){
+    octF.forEach(f=>addPoly(f.map(i=>octV[i]),0xf0a030,0xffc050,opacity));
+    if(showV) octV.forEach(v=>addSphere(v,0xf0a030,0.025));
+  }
+
+  // Rhombic Dodecahedron
+  if(showR){
+    rdFaces.forEach(f=>addPoly(f.map(i=>rdV[i]),0x38b89a,0x50ddb8,opacity));
+    if(showV){
+      for(let i=0;i<8;i++) addSphere(rdV[i],0x38b89a,0.018);
+      for(let i=8;i<14;i++) addSphere(rdV[i],0x38b89a,0.022);
+    }
+  }
+}
+
+rebuild();
+
+// Controls
+['showCube','showOct','showRD','show144','showEdges','showVerts'].forEach(id=>$(id).onchange=rebuild);
+$('opac').oninput=e=>{$('opacV').textContent=(+e.target.value).toFixed(2);rebuild();};
+
+// Interaction
+let drag=false,pm={x:0,y:0};
+cv.onmousedown=e=>{drag=true;pm={x:e.clientX,y:e.clientY};};
+cv.onmousemove=e=>{if(drag){MG.rotation.y+=(e.clientX-pm.x)*.01;MG.rotation.x+=(e.clientY-pm.y)*.01;pm={x:e.clientX,y:e.clientY};}};
+cv.onmouseup=cv.onmouseleave=()=>drag=false;
+cv.onwheel=e=>{e.preventDefault();cam.position.multiplyScalar(1+e.deltaY*.001);};
+onresize=()=>{cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();ren.setSize(innerWidth,innerHeight);};
+
+(function loop(){
+  requestAnimationFrame(loop);
+  if($('autoRot').checked&&!drag)MG.rotation.y+=.003;
+  ren.render(sc,cam);
+})();
+</script>
+</body>
+</html>
