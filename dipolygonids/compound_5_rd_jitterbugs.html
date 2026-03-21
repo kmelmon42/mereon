@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Compound of 5 RD Jitterbugs</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:system-ui,sans-serif;background:#08080f;color:#ddd;overflow:hidden;}
+#ui{
+  position:fixed;top:12px;left:12px;z-index:100;
+  background:rgba(10,10,18,0.95);border:1px solid #223;border-radius:8px;
+  padding:16px 18px;width:300px;max-height:95vh;overflow-y:auto;
+}
+h1{font-size:0.95rem;color:#aaf;margin-bottom:4px;}
+.sub{font-size:0.7rem;color:#667;margin-bottom:12px;}
+h2{font-size:0.75rem;color:#556;margin:10px 0 4px;border-top:1px solid #1a1a2a;padding-top:8px;}
+.row{margin:5px 0;font-size:0.76rem;}
+.row label{display:flex;align-items:center;gap:6px;cursor:pointer;}
+.slider-row{margin:6px 0;}
+.slider-row label{font-size:0.72rem;color:#778;display:block;margin-bottom:2px;}
+.slider-row input[type=range]{width:100%;}
+.val{color:#aaf;font-weight:bold;}
+.info{font-size:0.65rem;color:#556;margin-top:10px;line-height:1.6;}
+.info .hl{color:#aaf;}
+.legend{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}
+.legend-item{display:flex;align-items:center;gap:4px;font-size:0.7rem;}
+.swatch{width:10px;height:10px;border-radius:2px;border:1px solid #333;}
+</style>
+</head>
+<body>
+<div id="ui">
+  <h1>Compound of 5 RD Jitterbugs</h1>
+  <div class="sub">5 copies oriented as the compound of 5 octahedra</div>
+  
+  <div class="slider-row">
+    <label>Parameter h: <span class="val" id="h-val">0.000</span></label>
+    <input type="range" id="h-slider" min="0" max="0.85" value="0" step="0.005">
+  </div>
+  
+  <h2>Display</h2>
+  <div class="row"><label><input type="checkbox" id="showFaces" checked> Faces</label></div>
+  <div class="row"><label><input type="checkbox" id="showEdges" checked> Edges</label></div>
+  <div class="row"><label><input type="checkbox" id="showVerts"> Vertices</label></div>
+
+  <h2>Animation</h2>
+  <div class="row"><label><input type="checkbox" id="animate"> Animate h</label></div>
+  <div class="slider-row">
+    <label>Speed: <span class="val" id="spd-val">0.3</span></label>
+    <input type="range" id="spd-slider" min="0.05" max="2" value="0.3" step="0.05">
+  </div>
+  <div class="row"><label><input type="checkbox" id="autoRotate" checked> Auto-rotate</label></div>
+  
+  <h2>Octahedra (5 copies)</h2>
+  <div class="legend" id="legend"></div>
+  
+  <div class="info" id="stats"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+'use strict';
+
+const PHI = (1 + Math.sqrt(5)) / 2;
+const S2 = Math.sqrt(2);
+const S3 = Math.sqrt(3);
+const S6 = Math.sqrt(6);
+const E = S3/2;
+const SC = 2/S6; // scale to match unit octahedra at h=0
+
+// 5 colors matching the static120
+const COLORS = [0x66ff66, 0xffff66, 0xcc88ff, 0xff9966, 0x66ccff];
+const EDGE_COLORS = [0x44cc44, 0xcccc44, 0x9966cc, 0xcc7744, 0x4499cc];
+const COLOR_NAMES = ['#66ff66','#ffff66','#cc88ff','#ff9966','#66ccff'];
+const LABELS = ['0°','72°','144°','216°','288°'];
+
+// 5-fold axis: (0, 1, φ) normalized
+const axis5 = new THREE.Vector3(0, 1, PHI).normalize();
+
+// Build rotation quaternions for 5 copies
+const rotations = [];
+for(let i=0;i<5;i++){
+  const q = new THREE.Quaternion().setFromAxisAngle(axis5, i * 2 * Math.PI / 5);
+  rotations.push(q);
+}
+
+// ═══════════════════════════════════════════════════════════
+// RD BELT MECHANISM (same as rd_jitterbug.html)
+// ═══════════════════════════════════════════════════════════
+
+function computeBeltVerts(h) {
+  const d2 = E*E - h*h;
+  const d = d2 > 0 ? Math.sqrt(d2) : 0;
+  const dS2 = d / S2;
+  const dR2 = d * S2;
+  
+  const verts = {
+    px:[dR2,0,0], nx:[-dR2,0,0], py:[0,dR2,0], ny:[0,-dR2,0], pz:[0,0,dR2], nz:[0,0,-dR2],
+  };
+  for(const [sx,sy,sz] of [[1,1,1],[1,1,-1],[1,-1,1],[1,-1,-1],[-1,1,1],[-1,1,-1],[-1,-1,1],[-1,-1,-1]]){
+    const a=sx>0?'p':'n', b=sy>0?'p':'n', c=sz>0?'p':'n';
+    verts['xy_'+a+b+c] = [sx*dS2, sy*dS2, sz*h];
+    verts['xz_'+a+b+c] = [sx*dS2, sy*h, sz*dS2];
+    verts['yz_'+a+b+c] = [sx*h, sy*dS2, sz*dS2];
+  }
+  return verts;
+}
+
+const FACES = [
+  {belt:0, v:['xy_ppp','px','xy_ppn','py']},
+  {belt:0, v:['xy_pnp','px','xy_pnn','ny']},
+  {belt:0, v:['xy_npp','py','xy_npn','nx']},
+  {belt:0, v:['xy_nnp','nx','xy_nnn','ny']},
+  {belt:1, v:['xz_ppp','px','xz_pnp','pz']},
+  {belt:1, v:['xz_ppn','px','xz_pnn','nz']},
+  {belt:1, v:['xz_npp','nx','xz_nnp','pz']},
+  {belt:1, v:['xz_npn','nz','xz_nnn','nx']},
+  {belt:2, v:['yz_ppp','py','yz_npp','pz']},
+  {belt:2, v:['yz_ppn','nz','yz_npn','py']},
+  {belt:2, v:['yz_pnp','pz','yz_nnp','ny']},
+  {belt:2, v:['yz_pnn','ny','yz_nnn','nz']},
+];
+
+// ═══════════════════════════════════════════════════════════
+// THREE.JS
+// ═══════════════════════════════════════════════════════════
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x08080f);
+const camera = new THREE.PerspectiveCamera(50, window.innerWidth/window.innerHeight, 0.01, 100);
+camera.position.set(0, 0, 4);
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+document.body.appendChild(renderer.domElement);
+
+scene.add(new THREE.AmbientLight(0xffffff, 0.4));
+const dl = new THREE.DirectionalLight(0xffffff, 0.8); dl.position.set(5,5,5); scene.add(dl);
+const dl2 = new THREE.DirectionalLight(0x4466aa, 0.3); dl2.position.set(-4,-2,3); scene.add(dl2);
+
+const mainGroup = new THREE.Group();
+scene.add(mainGroup);
+
+function v3(a){return new THREE.Vector3(a[0],a[1],a[2]);}
+
+function applyQuat(q, v){
+  const tv = new THREE.Vector3(v[0],v[1],v[2]);
+  tv.applyQuaternion(q);
+  return [tv.x, tv.y, tv.z];
+}
+
+function rebuild(){
+  while(mainGroup.children.length) mainGroup.remove(mainGroup.children[0]);
+  
+  const h = parseFloat(document.getElementById('h-slider').value);
+  const showF = document.getElementById('showFaces').checked;
+  const showE = document.getElementById('showEdges').checked;
+  const showV = document.getElementById('showVerts').checked;
+  
+  const verts = computeBeltVerts(h);
+  
+  for(let ci=0; ci<5; ci++){
+    const q = rotations[ci];
+    const faceColor = COLORS[ci];
+    const edgeColor = EDGE_COLORS[ci];
+    
+    for(const face of FACES){
+      const vs = face.v.map(k => {
+        const local = verts[k];
+        const scaled = [local[0]*SC, local[1]*SC, local[2]*SC];
+        return applyQuat(q, scaled);
+      });
+      
+      if(showE){
+        const pts = [...vs.map(v3), v3(vs[0])];
+        mainGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),
+          new THREE.LineBasicMaterial({color:edgeColor, transparent:true, opacity:0.8})));
+      }
+      
+      if(showF){
+        const d02 = Math.sqrt(vs[0].reduce((s,x,i)=>s+(x-vs[2][i])**2,0));
+        const d13 = Math.sqrt(vs[1].reduce((s,x,i)=>s+(x-vs[3][i])**2,0));
+        let arr;
+        if(d02<=d13){
+          arr=new Float32Array([
+            vs[0][0],vs[0][1],vs[0][2],vs[1][0],vs[1][1],vs[1][2],vs[2][0],vs[2][1],vs[2][2],
+            vs[0][0],vs[0][1],vs[0][2],vs[2][0],vs[2][1],vs[2][2],vs[3][0],vs[3][1],vs[3][2],
+          ]);
+        } else {
+          arr=new Float32Array([
+            vs[0][0],vs[0][1],vs[0][2],vs[1][0],vs[1][1],vs[1][2],vs[3][0],vs[3][1],vs[3][2],
+            vs[1][0],vs[1][1],vs[1][2],vs[2][0],vs[2][1],vs[2][2],vs[3][0],vs[3][1],vs[3][2],
+          ]);
+        }
+        const g=new THREE.BufferGeometry();
+        g.setAttribute('position',new THREE.BufferAttribute(arr,3));
+        g.computeVertexNormals();
+        mainGroup.add(new THREE.Mesh(g, new THREE.MeshStandardMaterial({
+          color:faceColor, side:THREE.DoubleSide, transparent:false, roughness:0.35
+        })));
+      }
+    }
+    
+    if(showV){
+      const geo = new THREE.SphereGeometry(0.015, 8, 8);
+      const mat = new THREE.MeshStandardMaterial({color:faceColor, emissive:0x111111});
+      const seen = new Set();
+      for(const [key,pos] of Object.entries(verts)){
+        const scaled = [pos[0]*SC, pos[1]*SC, pos[2]*SC];
+        const rotated = applyQuat(q, scaled);
+        const pk = rotated.map(x=>Math.round(x*1000)/1000).join(',');
+        if(seen.has(pk)) continue;
+        seen.add(pk);
+        const s = new THREE.Mesh(geo, mat);
+        s.position.set(rotated[0], rotated[1], rotated[2]);
+        mainGroup.add(s);
+      }
+    }
+  }
+  
+  // Stats
+  const d = Math.sqrt(Math.max(0, E*E - h*h));
+  const isRD = Math.abs(h-0.5)<0.01;
+  const isOcta = h < 0.01;
+  document.getElementById('stats').innerHTML = 
+    `<span class="hl">h = ${h.toFixed(3)}</span><br>` +
+    `5 × 12 = 60 rhombic faces<br>` +
+    `Edge length (scaled): ${(E*SC).toFixed(4)}<br>` +
+    (isOcta ? '<span class="hl">★ Compound of 5 Octahedra</span><br>' : '') +
+    (isRD ? '<span class="hl">★ Compound of 5 Rhombic Dodecahedra</span><br>' : '');
+}
+
+// Controls
+document.getElementById('h-slider').addEventListener('input', e => {
+  document.getElementById('h-val').textContent = parseFloat(e.target.value).toFixed(3);
+  rebuild();
+});
+document.getElementById('spd-slider').addEventListener('input', e => {
+  document.getElementById('spd-val').textContent = parseFloat(e.target.value).toFixed(2);
+});
+document.querySelectorAll('input[type=checkbox]').forEach(el => el.addEventListener('change', rebuild));
+
+// Legend
+document.getElementById('legend').innerHTML = COLOR_NAMES.map((c,i) =>
+  `<div class="legend-item"><div class="swatch" style="background:${c}"></div>${LABELS[i]}</div>`
+).join('');
+
+rebuild();
+
+// Interaction
+let drag=false, pm={x:0,y:0};
+renderer.domElement.addEventListener('mousedown', e=>{drag=true;pm={x:e.clientX,y:e.clientY};});
+renderer.domElement.addEventListener('mousemove', e=>{
+  if(drag){mainGroup.rotation.y+=(e.clientX-pm.x)*0.008;mainGroup.rotation.x+=(e.clientY-pm.y)*0.008;pm={x:e.clientX,y:e.clientY};}
+});
+renderer.domElement.addEventListener('mouseup',()=>drag=false);
+renderer.domElement.addEventListener('mouseleave',()=>drag=false);
+renderer.domElement.addEventListener('wheel',e=>{e.preventDefault();camera.position.multiplyScalar(1+e.deltaY*0.001);},{passive:false});
+window.addEventListener('resize',()=>{camera.aspect=window.innerWidth/window.innerHeight;camera.updateProjectionMatrix();renderer.setSize(window.innerWidth,window.innerHeight);});
+
+// Animation
+let animT=0, animDir=1;
+(function loop(){
+  requestAnimationFrame(loop);
+  if(document.getElementById('animate').checked){
+    const spd=parseFloat(document.getElementById('spd-slider').value);
+    animT+=0.008*spd*animDir;
+    if(animT>1){animT=1;animDir=-1;}
+    if(animT<0){animT=0;animDir=1;}
+    const h=animT*E*0.98;
+    document.getElementById('h-slider').value=h;
+    document.getElementById('h-val').textContent=h.toFixed(3);
+    rebuild();
+  }
+  if(document.getElementById('autoRotate').checked&&!drag) mainGroup.rotation.y+=0.003;
+  renderer.render(scene,camera);
+})();
+</script>
+</body>
+</html>

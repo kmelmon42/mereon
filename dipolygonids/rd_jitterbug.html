@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rhombic Dodecahedron Jitterbug</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:system-ui,sans-serif;background:#08080f;color:#ddd;overflow:hidden;}
+#ui{
+  position:fixed;top:12px;left:12px;z-index:100;
+  background:rgba(10,10,18,0.95);border:1px solid #223;border-radius:8px;
+  padding:16px 18px;width:300px;
+}
+h1{font-size:0.95rem;color:#aaf;margin-bottom:4px;}
+.sub{font-size:0.7rem;color:#667;margin-bottom:12px;}
+h2{font-size:0.75rem;color:#556;margin:10px 0 4px;border-top:1px solid #1a1a2a;padding-top:8px;}
+.row{margin:5px 0;font-size:0.76rem;}
+.row label{display:flex;align-items:center;gap:6px;cursor:pointer;}
+.slider-row{margin:6px 0;}
+.slider-row label{font-size:0.72rem;color:#778;display:block;margin-bottom:2px;}
+.slider-row input[type=range]{width:100%;}
+.val{color:#aaf;font-weight:bold;}
+.info{font-size:0.65rem;color:#556;margin-top:10px;line-height:1.6;}
+.info .hl{color:#aaf;}
+.belt-key{display:flex;align-items:center;gap:6px;margin:2px 0;font-size:0.7rem;}
+.swatch{width:10px;height:10px;border-radius:2px;border:1px solid #333;}
+</style>
+</head>
+<body>
+<div id="ui">
+  <h1>Rhombic Dodecahedron Jitterbug</h1>
+  <div class="sub">A 1-DOF breathing mechanism for the RD</div>
+  
+  <div class="slider-row">
+    <label>Parameter h: <span class="val" id="h-val">0.500</span></label>
+    <input type="range" id="h-slider" min="0" max="0.86" value="0.5" step="0.005">
+  </div>
+  
+  <h2>Display</h2>
+  <div class="row"><label><input type="checkbox" id="showFaces" checked> Faces</label></div>
+  <div class="row"><label><input type="checkbox" id="showEdges" checked> Edges</label></div>
+  <div class="row"><label><input type="checkbox" id="showVerts" checked> Vertices</label></div>
+  <div class="row"><label><input type="checkbox" id="showBelts" checked> Color by belt</label></div>
+  <div class="row"><label><input type="checkbox" id="showSphere"> Cube-vertex sphere</label></div>
+  <div class="row"><label><input type="checkbox" id="showAxes"> 4-fold axes</label></div>
+  
+  <h2>Animation</h2>
+  <div class="row"><label><input type="checkbox" id="animate"> Animate</label></div>
+  <div class="slider-row">
+    <label>Speed: <span class="val" id="spd-val">0.4</span></label>
+    <input type="range" id="spd-slider" min="0.05" max="2" value="0.4" step="0.05">
+  </div>
+  <div class="row"><label><input type="checkbox" id="autoRotate" checked> Auto-rotate</label></div>
+  
+  <h2>Belt key</h2>
+  <div class="belt-key"><div class="swatch" style="background:#ff4466"></div> XY belt: normals [±1,±1,0]</div>
+  <div class="belt-key"><div class="swatch" style="background:#44ff66"></div> XZ belt: normals [±1,0,±1]</div>
+  <div class="belt-key"><div class="swatch" style="background:#4466ff"></div> YZ belt: normals [0,±1,±1]</div>
+  
+  <div class="info" id="stats"></div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+'use strict';
+
+const S2 = Math.sqrt(2);
+const E = Math.sqrt(3)/2; // constant edge length
+
+// ═══════════════════════════════════════════════════════════
+// RD BELT MECHANISM
+// ═══════════════════════════════════════════════════════════
+// Parameter: h (0 to E)
+// d = L = √(E² - h²)
+// 8 cube-type vertices on sphere of radius E
+// 6 octa-type vertices at distance d√2 from origin
+// 12 rhombic faces in 3 belts of 4
+
+function computeRD(h) {
+  const d2 = E*E - h*h;
+  const d = d2 > 0 ? Math.sqrt(d2) : 0;
+  const L = d;
+  const dS2 = d / S2;  // d/√2
+  const dR2 = d * S2;  // d√2
+  
+  // 8 cube-type vertices: (±dS2, ±dS2, ±h) and permutations by belt
+  // For the XY belt, the cube vertices have z = ±h
+  // For the XZ belt, the cube vertices have y = ±h
+  // For the YZ belt, the cube vertices have x = ±h
+  // But they must all be the SAME 8 points!
+  // Cube vertex (dS2, dS2, h) is shared by XY, XZ, and YZ belts.
+  // Let's verify: dS2 = d/√2. For XZ belt, cube vertex has (dS2, h, dS2).
+  // These are the same point only if dS2 = h... which is NOT generally true.
+  // 
+  // Wait — I need to re-derive. The cube vertices are at (±a, ±a, ±a) 
+  // where a depends on h. At the RD: a = 0.5, h = 0.5, so a = h.
+  // In general: the vertex (a, a, h) belongs to the XY belt face with normal [1,1,0].
+  // The same vertex (a, a, h) belongs to XZ belt face with normal [1,0,1] if
+  // it's at (a, h, a) — which requires h = a.
+  //
+  // So for vertex sharing: a = h! Then d/√2 = h → d = h√2.
+  // And E² = d² + h² = 2h² + h² = 3h² → h = E/√3.
+  // That gives only ONE value of h (the RD position), not a continuous mechanism!
+  //
+  // Unless... the three belts DON'T share cube vertices with each other.
+  // Each belt has its OWN set of cube-type vertices that move independently.
+  // Only the octa-type vertices are shared between belts.
+  
+  // Let me reconsider. The 6 octa-type vertices:
+  // XY belt uses: (±dR2, 0, 0) and (0, ±dR2, 0) — 4 vertices
+  // XZ belt uses: (±dR2, 0, 0) and (0, 0, ±dR2) — 4 vertices  
+  // YZ belt uses: (0, ±dR2, 0) and (0, 0, ±dR2) — 4 vertices
+  // Shared: px/nx between XY and XZ, py/ny between XY and YZ, pz/nz between XZ and YZ
+  // Each octa vertex is shared by exactly 2 belts. ✓
+  
+  // Cube vertices per belt (NOT shared between belts):
+  // XY belt: (±dS2, ±dS2, ±h) — 8 vertices with z = ±h
+  // XZ belt: (±dS2, ±h, ±dS2) — 8 vertices with y = ±h
+  // YZ belt: (±h, ±dS2, ±dS2) — 8 vertices with x = ±h
+  // These are DIFFERENT points (unless dS2 = h).
+  // Total: 24 cube vertices + 6 octa vertices = 30 vertices.
+  // At the RD position (dS2 = h), the 24 collapse to 8 → 14 total.
+
+  const verts = {
+    // Octa vertices (shared between belts)
+    px: [dR2, 0, 0], nx: [-dR2, 0, 0],
+    py: [0, dR2, 0], ny: [0, -dR2, 0],
+    pz: [0, 0, dR2], nz: [0, 0, -dR2],
+  };
+  
+  // Cube vertices per belt
+  // XY belt cube vertices
+  for(const [sx,sy,sz] of [[1,1,1],[1,1,-1],[1,-1,1],[1,-1,-1],[-1,1,1],[-1,1,-1],[-1,-1,1],[-1,-1,-1]]){
+    verts[`xy_${sx>0?'p':'n'}${sy>0?'p':'n'}${sz>0?'p':'n'}`] = [sx*dS2, sy*dS2, sz*h];
+  }
+  // XZ belt cube vertices
+  for(const [sx,sy,sz] of [[1,1,1],[1,1,-1],[1,-1,1],[1,-1,-1],[-1,1,1],[-1,1,-1],[-1,-1,1],[-1,-1,-1]]){
+    verts[`xz_${sx>0?'p':'n'}${sy>0?'p':'n'}${sz>0?'p':'n'}`] = [sx*dS2, sy*h, sz*dS2];
+  }
+  // YZ belt cube vertices
+  for(const [sx,sy,sz] of [[1,1,1],[1,1,-1],[1,-1,1],[1,-1,-1],[-1,1,1],[-1,1,-1],[-1,-1,1],[-1,-1,-1]]){
+    verts[`yz_${sx>0?'p':'n'}${sy>0?'p':'n'}${sz>0?'p':'n'}`] = [sx*h, sy*dS2, sz*dS2];
+  }
+  
+  // Faces: 4 per belt
+  // XY belt (normals [±1,±1,0]): rhombus vertices are 2 cube (z=±h) + 2 octa (in XY plane)
+  const faces = [
+    // XY belt
+    {belt:0, v:['xy_ppp','px','xy_ppn','py']},     // [+1,+1,0]
+    {belt:0, v:['xy_pnp','px','xy_pnn','ny']},     // [+1,-1,0]
+    {belt:0, v:['xy_npp','py','xy_npn','nx']},     // [-1,+1,0]
+    {belt:0, v:['xy_nnp','nx','xy_nnn','ny']},     // [-1,-1,0]
+    // XZ belt
+    {belt:1, v:['xz_ppp','px','xz_pnp','pz']},    // [+1,0,+1]
+    {belt:1, v:['xz_ppn','px','xz_pnn','nz']},    // [+1,0,-1]
+    {belt:1, v:['xz_npp','nx','xz_nnp','pz']},    // [-1,0,+1] (fixed order)
+    {belt:1, v:['xz_npn','nz','xz_nnn','nx']},    // [-1,0,-1]
+    // YZ belt
+    {belt:2, v:['yz_ppp','py','yz_npp','pz']},    // [0,+1,+1]
+    {belt:2, v:['yz_ppn','nz','yz_npn','py']},    // [0,+1,-1]
+    {belt:2, v:['yz_pnp','pz','yz_nnp','ny']},    // [0,-1,+1]
+    {belt:2, v:['yz_pnn','ny','yz_nnn','nz']},    // [0,-1,-1]
+  ];
+  
+  return { verts, faces, d, h, dR2, dS2 };
+}
+
+// ═══════════════════════════════════════════════════════════
+// THREE.JS
+// ═══════════════════════════════════════════════════════════
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x08080f);
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.01, 100);
+camera.position.set(0, 0, 4);
+const renderer = new THREE.WebGLRenderer({antialias:true});
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+document.body.appendChild(renderer.domElement);
+
+scene.add(new THREE.AmbientLight(0xffffff, 0.45));
+const dl = new THREE.DirectionalLight(0xffffff, 0.8);
+dl.position.set(4, 5, 6); scene.add(dl);
+const dl2 = new THREE.DirectionalLight(0x4466aa, 0.3);
+dl2.position.set(-3, -2, 4); scene.add(dl2);
+
+const group = new THREE.Group();
+scene.add(group);
+
+const beltColors = [0xff4466, 0x44ff66, 0x4466ff];
+const beltEdgeColors = [0xff8899, 0x88ffaa, 0x8899ff];
+const monoColor = 0x6677aa;
+const monoEdge = 0x99aacc;
+
+function v3(a) { return new THREE.Vector3(a[0], a[1], a[2]); }
+
+function rebuild() {
+  while(group.children.length) group.remove(group.children[0]);
+  
+  const h = parseFloat(document.getElementById('h-slider').value);
+  const rd = computeRD(h);
+  
+  const showF = document.getElementById('showFaces').checked;
+  const showE = document.getElementById('showEdges').checked;
+  const showV = document.getElementById('showVerts').checked;
+  const belts = document.getElementById('showBelts').checked;
+  
+  // Faces and edges
+  for(const face of rd.faces) {
+    const vs = face.v.map(k => rd.verts[k]);
+    
+    const faceColor = belts ? beltColors[face.belt] : monoColor;
+    const edgeColor = belts ? beltEdgeColors[face.belt] : monoEdge;
+    
+    if(showE) {
+      const pts = [...vs.map(v3), v3(vs[0])];
+      group.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),
+        new THREE.LineBasicMaterial({color: edgeColor})));
+    }
+    
+    if(showF) {
+      const d02 = Math.sqrt(vs[0].reduce((s,x,i) => s+(x-vs[2][i])**2, 0));
+      const d13 = Math.sqrt(vs[1].reduce((s,x,i) => s+(x-vs[3][i])**2, 0));
+      let arr;
+      if(d02 <= d13) {
+        arr = new Float32Array([
+          vs[0][0],vs[0][1],vs[0][2], vs[1][0],vs[1][1],vs[1][2], vs[2][0],vs[2][1],vs[2][2],
+          vs[0][0],vs[0][1],vs[0][2], vs[2][0],vs[2][1],vs[2][2], vs[3][0],vs[3][1],vs[3][2],
+        ]);
+      } else {
+        arr = new Float32Array([
+          vs[0][0],vs[0][1],vs[0][2], vs[1][0],vs[1][1],vs[1][2], vs[3][0],vs[3][1],vs[3][2],
+          vs[1][0],vs[1][1],vs[1][2], vs[2][0],vs[2][1],vs[2][2], vs[3][0],vs[3][1],vs[3][2],
+        ]);
+      }
+      const g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.BufferAttribute(arr, 3));
+      g.computeVertexNormals();
+      group.add(new THREE.Mesh(g, new THREE.MeshStandardMaterial({
+        color: faceColor, side: THREE.DoubleSide, transparent: false, roughness: 0.35
+      })));
+    }
+  }
+  
+  // Vertices
+  if(showV) {
+    const geo = new THREE.SphereGeometry(0.025, 10, 10);
+    const seen = new Set();
+    for(const [key, pos] of Object.entries(rd.verts)) {
+      const pk = pos.map(x => Math.round(x*1000)/1000).join(',');
+      if(seen.has(pk)) continue;
+      seen.add(pk);
+      const isOcta = key.length === 2;
+      const mat = new THREE.MeshStandardMaterial({
+        color: isOcta ? 0xffcc44 : 0xffffff,
+        emissive: isOcta ? 0x332200 : 0x111111,
+      });
+      const s = new THREE.Mesh(geo, mat);
+      s.position.set(pos[0], pos[1], pos[2]);
+      group.add(s);
+    }
+  }
+  
+  // Sphere through cube-type vertices
+  if(document.getElementById('showSphere').checked) {
+    const sg = new THREE.SphereGeometry(E, 32, 32);
+    group.add(new THREE.Mesh(sg, new THREE.MeshStandardMaterial({
+      color: 0x4444ff, transparent: true, opacity: 0.06, side: THREE.DoubleSide
+    })));
+    group.add(new THREE.LineSegments(
+      new THREE.EdgesGeometry(sg),
+      new THREE.LineBasicMaterial({color: 0x333366, transparent: true, opacity: 0.1})
+    ));
+  }
+  
+  // 4-fold axes
+  if(document.getElementById('showAxes').checked) {
+    const al = 1.5;
+    for(const d of [[1,0,0],[0,1,0],[0,0,1]]) {
+      group.add(new THREE.Line(
+        new THREE.BufferGeometry().setFromPoints([v3(d.map(x=>x*-al)), v3(d.map(x=>x*al))]),
+        new THREE.LineBasicMaterial({color:0x334455, transparent:true, opacity:0.3})
+      ));
+    }
+  }
+  
+  // Stats
+  const uniqueVerts = new Set();
+  for(const pos of Object.values(rd.verts)) {
+    uniqueVerts.add(pos.map(x=>Math.round(x*1000)/1000).join(','));
+  }
+  
+  const edge0 = rd.faces[0].v.map(k=>rd.verts[k]);
+  const edgeLen = Math.sqrt(edge0[0].reduce((s,x,i)=>s+(x-edge0[1][i])**2,0));
+  
+  document.getElementById('stats').innerHTML = 
+    `<span class="hl">h = ${h.toFixed(3)}</span> | d = ${rd.d.toFixed(3)} | ` +
+    `edge = ${edgeLen.toFixed(4)}<br>` +
+    `Unique vertices: ${uniqueVerts.size}<br>` +
+    `Octa vertices at r = ${rd.dR2.toFixed(3)}<br>` +
+    `Cube vertices at r = ${E.toFixed(3)} (fixed)` +
+    (Math.abs(h - 0.5) < 0.01 ? '<br><span class="hl">★ Rhombic Dodecahedron position</span>' : '');
+}
+
+// Controls
+document.getElementById('h-slider').addEventListener('input', e => {
+  document.getElementById('h-val').textContent = parseFloat(e.target.value).toFixed(3);
+  rebuild();
+});
+document.getElementById('spd-slider').addEventListener('input', e => {
+  document.getElementById('spd-val').textContent = parseFloat(e.target.value).toFixed(2);
+});
+document.querySelectorAll('input[type=checkbox]').forEach(el => el.addEventListener('change', rebuild));
+
+rebuild();
+
+// Interaction
+let drag = false, pm = {x:0, y:0};
+renderer.domElement.addEventListener('mousedown', e => { drag=true; pm={x:e.clientX,y:e.clientY}; });
+renderer.domElement.addEventListener('mousemove', e => {
+  if(drag) { group.rotation.y+=(e.clientX-pm.x)*0.008; group.rotation.x+=(e.clientY-pm.y)*0.008; pm={x:e.clientX,y:e.clientY}; }
+});
+renderer.domElement.addEventListener('mouseup', () => drag=false);
+renderer.domElement.addEventListener('mouseleave', () => drag=false);
+renderer.domElement.addEventListener('wheel', e => { e.preventDefault(); camera.position.multiplyScalar(1+e.deltaY*0.001); }, {passive:false});
+window.addEventListener('resize', () => { camera.aspect=window.innerWidth/window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth,window.innerHeight); });
+
+// Animation
+let animT = 0, animDir = 1;
+(function loop() {
+  requestAnimationFrame(loop);
+  
+  if(document.getElementById('animate').checked) {
+    const spd = parseFloat(document.getElementById('spd-slider').value);
+    animT += 0.01 * spd * animDir;
+    if(animT > 1) { animT = 1; animDir = -1; }
+    if(animT < 0) { animT = 0; animDir = 1; }
+    const h = animT * E * 0.98; // avoid exact 0 and E
+    document.getElementById('h-slider').value = h;
+    document.getElementById('h-val').textContent = h.toFixed(3);
+    rebuild();
+  }
+  
+  if(document.getElementById('autoRotate').checked && !drag) group.rotation.y += 0.003;
+  renderer.render(scene, camera);
+})();
+</script>
+</body>
+</html>

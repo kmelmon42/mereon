@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>144 Polyhedron — Oct + RD Jitterbug</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:#06060e;color:#d8dce6;overflow:hidden;}
+#ui{position:fixed;top:0;left:0;background:rgba(8,8,18,0.97);padding:16px;z-index:100;width:290px;height:100vh;overflow-y:auto;border-right:1px solid rgba(255,255,255,0.06);}
+#ui::-webkit-scrollbar{width:4px;} #ui::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:2px;}
+h1{font-size:0.8rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#8ab4f8;margin-bottom:4px;}
+.sub{font-size:0.66rem;color:#556;line-height:1.5;margin-bottom:12px;}
+h2{font-size:0.62rem;font-weight:500;color:#445;margin:10px 0 5px;letter-spacing:0.1em;text-transform:uppercase;padding-top:8px;border-top:1px solid rgba(255,255,255,0.04);}
+.cr{margin:4px 0;font-size:0.7rem;display:flex;align-items:center;gap:7px;}
+.cr label{display:flex;align-items:center;gap:5px;cursor:pointer;color:#778;}
+input[type=checkbox]{accent-color:#8ab4f8;}
+input[type=range]{width:100%;accent-color:#8ab4f8;height:3px;}
+.val{font-family:'JetBrains Mono',monospace;font-size:0.62rem;color:#8ab4f8;min-width:34px;text-align:right;}
+button{font-family:'DM Sans';background:rgba(255,255,255,0.04);color:#889;border:1px solid rgba(255,255,255,0.08);padding:4px 8px;border-radius:4px;cursor:pointer;font-size:0.64rem;font-weight:500;transition:all 0.2s;}
+button:hover{background:rgba(255,255,255,0.08);color:#aab;}
+button.active{background:rgba(138,180,248,0.12);color:#8ab4f8;border-color:rgba(138,180,248,0.3);}
+.btn-row{display:flex;gap:3px;flex-wrap:wrap;margin:5px 0;}
+.sw{width:9px;height:9px;border-radius:2px;display:inline-block;}
+#cv{width:100vw;height:100vh;}
+</style>
+</head>
+<body>
+<div id="ui">
+<h1>144 Jitterbug Decomposition</h1>
+<div class="sub">All three polyhedra breathe in sync. Oct: Fuller Jitterbug. RD: belt mechanism. Cube: O₄ dipolygonid.</div>
+
+<h2>Synchronized Breathing</h2>
+<div class="cr"><label><input type="checkbox" id="syncAnim" checked> Animate</label></div>
+<div class="cr"><label>Breath</label><input type="range" id="breathSlider" min="0" max="1" value="0" step="0.002"><span class="val" id="breathV">0.00</span></div>
+<div class="cr"><label>Speed</label><input type="range" id="breathSpeed" min="0.1" max="3" value="0.8" step="0.05"><span class="val" id="breathSpeedV">0.80</span></div>
+<div class="btn-row"><button onclick="setBreath(0)">Closed (144)</button><button onclick="setBreath(1)">Full expand</button><button onclick="setBreath(0.5)">Half</button></div>
+<div style="font-size:0.58rem;color:#445;margin:4px 0;line-height:1.5;">
+  0 = 144 Poly (Oct 60°, RD h=0.5, Cube ψ=0)<br>
+  1 = Max expand (Oct 0°, RD h→0, Cube ψ=60°)
+</div>
+
+<h2>Manual Override</h2>
+<div class="cr"><label>Oct angle</label><input type="range" id="octAngle" min="0" max="60" value="60" step="0.2"><span class="val" id="octAngleV">60°</span></div>
+<div class="cr"><label>RD h</label><input type="range" id="rdH" min="0.01" max="0.5" value="0.5" step="0.005"><span class="val" id="rdHV">0.500</span></div>
+
+<h2>Display</h2>
+<div class="cr"><label><input type="checkbox" id="showCube" checked> <span class="sw" style="background:#e8443a"></span> Cube faces (48)</label></div>
+<div class="cr"><label><input type="checkbox" id="showOct" checked> <span class="sw" style="background:#f0a030"></span> Oct faces + buddies</label></div>
+<div class="cr"><label><input type="checkbox" id="showRD" checked> <span class="sw" style="background:#38b89a"></span> RD faces + buddies</label></div>
+<div class="cr"><label><input type="checkbox" id="showEdges" checked> Edges</label></div>
+<div class="cr"><label><input type="checkbox" id="showGaps"> Oct gap triangles</label></div>
+<div class="cr"><label><input type="checkbox" id="autoRot" checked> Auto rotate</label></div>
+<div class="cr"><label>Opacity</label><input type="range" id="opac" min="0.1" max="1" value="0.7" step="0.05"><span class="val" id="opacV">0.70</span></div>
+</div>
+<div id="cv"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+'use strict';
+const S2=Math.sqrt(2),S3=Math.sqrt(3),E_RD=S3/2;
+
+// ═══════════════════════════════════════════════════════════
+// COORDINATE TRANSFORM: 144 ↔ JB oct coords
+// ═══════════════════════════════════════════════════════════
+const C45=Math.cos(Math.PI/4),S45=Math.sin(Math.PI/4);
+function toJB(v){const x=v[0]/S2,y=v[1]/S2,z=v[2]/S2;return[x*C45-y*S45,x*S45+y*C45,z];}
+
+// ═══════════════════════════════════════════════════════════
+// BUILD 144 (get cube+oct+rd triangles in 144 unit coords)
+// ═══════════════════════════════════════════════════════════
+function isFCC(x,y,z){return(x+y+z)%2===0;}
+function vadd(a,b){return[a[0]+b[0],a[1]+b[1],a[2]+b[2]];}
+function vsub(a,b){return[a[0]-b[0],a[1]-b[1],a[2]-b[2]];}
+function vmul(v,s){return[v[0]*s,v[1]*s,v[2]*s];}
+function vdot(a,b){return a[0]*b[0]+a[1]*b[1]+a[2]*b[2];}
+function vcross(a,b){return[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];}
+function vlen(v){return Math.sqrt(vdot(v,v));}
+function vnorm(v){const l=vlen(v);return l?vmul(v,1/l):[0,0,0];}
+function vavg(...vs){const n=vs.length;return[vs.reduce((s,v)=>s+v[0],0)/n,vs.reduce((s,v)=>s+v[1],0)/n,vs.reduce((s,v)=>s+v[2],0)/n];}
+function nearFCC(p){let b=null,bd=9;for(let dx=-2;dx<=2;dx++)for(let dy=-2;dy<=2;dy++)for(let dz=-2;dz<=2;dz++){const c=[Math.round(p[0])+dx,Math.round(p[1])+dy,Math.round(p[2])+dz];if(!isFCC(...c))continue;const d=vlen(vsub(c,p));if(d<bd){bd=d;b=c;}}return b;}
+
+const OUT=[[4,0,0],[-4,0,0],[0,4,0],[0,-4,0],[0,0,4],[0,0,-4]];
+const FO=[[0,2,4],[0,4,3],[0,3,5],[0,5,2],[1,4,2],[1,3,4],[1,5,3],[1,2,5]];
+const allV=[],allT=[],vm={};
+function aV(v){const r=[Math.round(v[0]),Math.round(v[1]),Math.round(v[2])],k=r.join(',');if(!(k in vm)){vm[k]=allV.length;allV.push(r);}return vm[k];}
+for(const f of FO){const A=OUT[f[0]],B=OUT[f[1]],C=OUT[f[2]],fn=vnorm(vavg(A,B,C)),mAB=vavg(A,B),mBC=vavg(B,C),mCA=vavg(C,A);
+const cds=[[2,2,2],[-2,-2,-2],[2,2,-2],[2,-2,2],[-2,2,2],[2,-2,-2],[-2,2,-2],[-2,-2,2]];let O=null,ba=-9;
+for(const c of cds){const cn=vnorm(c),a=vdot(cn,fn);if(a>ba){ba=a;O=c;}}if(!O||ba<=0.9)O=nearFCC(vavg(A,B,C));
+for(const[P,Q,R] of[[A,mAB,O],[mAB,B,O],[B,mBC,O],[mBC,C,O],[C,mCA,O],[mCA,A,O]]){const cf=vavg(P,Q,R),cp=vadd(cf,vmul(fn,.5)),ct=nearFCC(cp);
+const pI=aV(P),qI=aV(Q),rI=aV(R),cI=aV(ct);allT.push([pI,qI,cI],[qI,rI,cI],[rI,pI,cI]);}}
+const VU=allV.map(v=>[v[0]/4,v[1]/4,v[2]/4]);
+
+// Classify and collect CUBE triangles (in JB coords for the oct JB frame)
+const cubeTrisJB=[];
+for(const tri of allT){const v0=VU[tri[0]],v1=VU[tri[1]],v2=VU[tri[2]];
+const e1=vsub(v1,v0),e2=vsub(v2,v0);let n=vcross(e1,e2);const nl=vlen(n);if(nl<1e-12)continue;
+n=vmul(n,1/nl);if(vdot(n,vavg(v0,v1,v2))<0)n=vmul(n,-1);
+const an=n.map(Math.abs).sort((a,b)=>b-a);
+if(an[1]<0.1)cubeTrisJB.push(toJB(v0),toJB(v1),toJB(v2));}
+
+// ═══════════════════════════════════════════════════════════
+// THREE.JS SETUP
+// ═══════════════════════════════════════════════════════════
+const cv=document.getElementById('cv'),sc=new THREE.Scene();
+sc.background=new THREE.Color(0x06060e);
+const cam=new THREE.PerspectiveCamera(50,innerWidth/innerHeight,0.1,1000);
+cam.position.set(0,0,4);
+const ren=new THREE.WebGLRenderer({antialias:true});
+ren.setSize(innerWidth,innerHeight);ren.setPixelRatio(Math.min(devicePixelRatio,2));cv.appendChild(ren.domElement);
+sc.add(new THREE.AmbientLight(0xffffff,0.45));
+const dl1=new THREE.DirectionalLight(0xffffff,0.65);dl1.position.set(5,5,5);sc.add(dl1);
+const dl2=new THREE.DirectionalLight(0xffffff,0.25);dl2.position.set(-3,-2,3);sc.add(dl2);
+const MG=new THREE.Group();sc.add(MG);
+
+// ═══════════════════════════════════════════════════════════
+// OCT JITTERBUG (in JB coords, rotated 45° from 144)
+// ═══════════════════════════════════════════════════════════
+const EL=1,ov=[new THREE.Vector3(.5,.5,0),new THREE.Vector3(-.5,.5,0),new THREE.Vector3(-.5,-.5,0),new THREE.Vector3(.5,-.5,0),new THREE.Vector3(0,0,1/S2),new THREE.Vector3(0,0,-1/S2)];
+const octFI=[[0,1,4],[1,2,4],[2,3,4],[3,0,4],[0,3,5],[3,2,5],[2,1,5],[1,0,5]];
+const MAP_144_TO_JB=[0,3,4,7,1,2,5,6];
+
+// Oct buddy data (144 unit coords, 6 per 144 face → mapped to JB faces)
+const OB144=[
+[[[1,0,0],[.5,0,.5],[.75,-.25,.5]],[[.5,0,.5],[0,0,1],[.5,-.25,.75]],[[0,1,0],[.5,.5,0],[.5,.75,-.25]],[[.5,.5,0],[1,0,0],[.75,.5,-.25]],[[0,0,1],[0,.5,.5],[-.25,.5,.75]],[[0,.5,.5],[0,1,0],[-.25,.75,.5]]],
+[[[0,0,1],[.5,0,.5],[.5,.25,.75]],[[.5,0,.5],[1,0,0],[.75,.25,.5]],[[1,0,0],[.5,-.5,0],[.75,-.5,-.25]],[[.5,-.5,0],[0,-1,0],[.5,-.75,-.25]],[[0,-1,0],[0,-.5,.5],[-.25,-.75,.5]],[[0,-.5,.5],[0,0,1],[-.25,-.5,.75]]],
+[[[0,-1,0],[.5,-.5,0],[.5,-.75,.25]],[[.5,-.5,0],[1,0,0],[.75,-.5,.25]],[[1,0,0],[.5,0,-.5],[.75,.25,-.5]],[[.5,0,-.5],[0,0,-1],[.5,.25,-.75]],[[0,0,-1],[0,-.5,-.5],[-.25,-.5,-.75]],[[0,-.5,-.5],[0,-1,0],[-.25,-.75,-.5]]],
+[[[1,0,0],[.5,.5,0],[.75,.5,.25]],[[.5,.5,0],[0,1,0],[.5,.75,.25]],[[0,0,-1],[.5,0,-.5],[.5,-.25,-.75]],[[.5,0,-.5],[1,0,0],[.75,-.25,-.5]],[[0,1,0],[0,.5,-.5],[-.25,.75,-.5]],[[0,.5,-.5],[0,0,-1],[-.25,.5,-.75]]],
+[[[0,1,0],[0,.5,.5],[.25,.75,.5]],[[0,.5,.5],[0,0,1],[.25,.5,.75]],[[0,0,1],[-.5,0,.5],[-.5,-.25,.75]],[[-.5,0,.5],[-1,0,0],[-.75,-.25,.5]],[[-1,0,0],[-.5,.5,0],[-.75,.5,-.25]],[[-.5,.5,0],[0,1,0],[-.5,.75,-.25]]],
+[[[0,0,1],[0,-.5,.5],[.25,-.5,.75]],[[0,-.5,.5],[0,-1,0],[.25,-.75,.5]],[[-1,0,0],[-.5,0,.5],[-.75,.25,.5]],[[-.5,0,.5],[0,0,1],[-.5,.25,.75]],[[0,-1,0],[-.5,-.5,0],[-.5,-.75,-.25]],[[-.5,-.5,0],[-1,0,0],[-.75,-.5,-.25]]],
+[[[0,-1,0],[0,-.5,-.5],[.25,-.75,-.5]],[[0,-.5,-.5],[0,0,-1],[.25,-.5,-.75]],[[-1,0,0],[-.5,-.5,0],[-.75,-.5,.25]],[[-.5,-.5,0],[0,-1,0],[-.5,-.75,.25]],[[0,0,-1],[-.5,0,-.5],[-.5,.25,-.75]],[[-.5,0,-.5],[-1,0,0],[-.75,.25,-.5]]],
+[[[0,0,-1],[0,.5,-.5],[.25,.5,-.75]],[[0,.5,-.5],[0,1,0],[.25,.75,-.5]],[[0,1,0],[-.5,.5,0],[-.5,.75,.25]],[[-.5,.5,0],[-1,0,0],[-.75,.5,.25]],[[-1,0,0],[-.5,0,-.5],[-.75,-.25,-.5]],[[-.5,0,-.5],[0,0,-1],[-.5,-.25,-.75]]]
+];
+
+// Transform oct buddies to JB coords and organize by JB face
+const octBuddyByJBFace=Array.from({length:8},()=>[]);
+OB144.forEach((face,fi)=>{const jbF=MAP_144_TO_JB[fi];face.forEach(tri=>{octBuddyByJBFace[jbF].push(tri.map(v=>toJB(v)));});});
+
+const octGroup=new THREE.Group();
+const octFaceGrps=[];
+const octBuddyGrps=[];
+const octFrontMat=new THREE.MeshStandardMaterial({color:0xf0a030,side:THREE.FrontSide,transparent:true,opacity:.7,roughness:.6,metalness:.1,polygonOffset:true,polygonOffsetFactor:1,polygonOffsetUnits:1});
+const octBackMat=new THREE.MeshStandardMaterial({color:0xcc6600,side:THREE.BackSide,transparent:true,opacity:.7,roughness:.6,metalness:.1,polygonOffset:true,polygonOffsetFactor:1.5,polygonOffsetUnits:1.5});
+const octBudMat=new THREE.MeshStandardMaterial({color:0xf0a030,side:THREE.DoubleSide,transparent:true,opacity:.5,roughness:.6,metalness:.1,polygonOffset:true,polygonOffsetFactor:.5,polygonOffsetUnits:.5});
+const gapMat=new THREE.MeshStandardMaterial({color:0xf0a030,side:THREE.DoubleSide,transparent:true,opacity:.4,roughness:.6});
+const eMat=new THREE.LineBasicMaterial({color:0x000000});
+const beMat=new THREE.LineBasicMaterial({color:0x885500,transparent:true,opacity:.4});
+
+octFI.forEach((fi,idx)=>{
+  const g=new THREE.Group(),v1=ov[fi[0]],v2=ov[fi[1]],v3=ov[fi[2]];
+  const fc=new THREE.Vector3().add(v1).add(v2).add(v3).divideScalar(3);fc.normalize();
+  g.userData=fc;
+  const gm=new THREE.BufferGeometry().setFromPoints([v1,v2,v3]);gm.computeVertexNormals();
+  g.add(new THREE.Mesh(gm,octFrontMat));g.add(new THREE.Mesh(gm.clone(),octBackMat));
+  g.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([v1,v2,v3,v1]),eMat));
+  const bg=new THREE.Group();
+  octBuddyByJBFace[idx].forEach(tri=>{
+    const bv=tri.map(v=>new THREE.Vector3(...v));
+    const bgg=new THREE.BufferGeometry().setFromPoints(bv);bgg.computeVertexNormals();
+    bg.add(new THREE.Mesh(bgg,octBudMat));
+    bg.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([bv[0],bv[1],bv[2],bv[0]]),beMat));
+  });
+  g.add(bg);octBuddyGrps.push(bg);octFaceGrps.push(g);octGroup.add(g);
+});
+
+// Gap triangles
+const gapSpecs=[{m:0,s:1,a:0,b:7},{m:0,s:3,a:3,b:4},{m:4,s:0,a:0,b:3},{m:5,s:0,a:4,b:7},{m:2,s:1,a:1,b:6},{m:1,s:4,a:0,b:1},{m:1,s:5,a:6,b:7},{m:2,s:3,a:2,b:5},{m:4,s:2,a:1,b:2},{m:5,s:2,a:5,b:6},{m:3,s:4,a:2,b:3},{m:3,s:5,a:4,b:5}];
+const gapTris=gapSpecs.map(()=>{const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(new Float32Array(9),3));g.setIndex([0,1,2]);const m=new THREE.Mesh(g,gapMat);m.visible=false;octGroup.add(m);return m;});
+MG.add(octGroup);
+
+const octInitR=Math.sqrt(2/3)*Math.cos(Math.PI/180*60);
+function updateOct(angle){
+  const cR=Math.sqrt(2/3)*Math.cos(Math.PI/180*angle)-octInitR;
+  const showO=$('showOct').checked,showE=$('showEdges').checked,showG=$('showGaps').checked;
+  octGroup.visible=showO;
+  octFaceGrps.forEach((g,i)=>{
+    const h=g.userData;if(!h||!h.isVector3)return;
+    const dir=(i%2===0)?-1:1,rad=(Math.PI/180)*(angle-60)*dir;
+    g.quaternion.setFromAxisAngle(h,rad);g.position.copy(h.clone().multiplyScalar(cR));
+    g.children[0].visible=showO;g.children[1].visible=showO;g.children[2].visible=showO&&showE;
+  });
+  octBuddyGrps.forEach(bg=>bg.visible=showO);
+  gapSpecs.forEach((sp,gi)=>{
+    const hA=octFaceGrps[sp.a].userData,hB=octFaceGrps[sp.b].userData;
+    const dA=(sp.a%2===0)?-1:1,dB=(sp.b%2===0)?-1:1;
+    const rA=(Math.PI/180)*(angle-60)*dA,rB=(Math.PI/180)*(angle-60)*dB;
+    const qA=new THREE.Quaternion().setFromAxisAngle(hA,rA),qB=new THREE.Quaternion().setFromAxisAngle(hB,rB);
+    const pA=hA.clone().multiplyScalar(cR),pB=hB.clone().multiplyScalar(cR);
+    const mW=ov[sp.m].clone().applyQuaternion(qA).add(pA);
+    const sA=ov[sp.s].clone().applyQuaternion(qA).add(pA);
+    const sB=ov[sp.s].clone().applyQuaternion(qB).add(pB);
+    const p=gapTris[gi].geometry.attributes.position.array;
+    p[0]=mW.x;p[1]=mW.y;p[2]=mW.z;p[3]=sA.x;p[4]=sA.y;p[5]=sA.z;p[6]=sB.x;p[7]=sB.y;p[8]=sB.z;
+    gapTris[gi].geometry.attributes.position.needsUpdate=true;gapTris[gi].geometry.computeVertexNormals();
+    gapTris[gi].visible=showO&&showG;
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// RD JITTERBUG (in 144 unit coords, transformed to JB)
+// ═══════════════════════════════════════════════════════════
+// RD buddy data: for each of 12 faces, 4 buddies.
+// Each buddy: [v0(9floats)] where v0,v1 are face verts, v2 is flag tip.
+// Flag tip = centroid + a*e1 + b*e2 where e1=fv[0]-centroid, e2=fv[1]-centroid
+// Coefficients per buddy: always from {(+1,+0.5),(+1,-0.5),(-1,+0.5),(-1,-0.5)}
+
+// For each face, store which face-vertex indices the buddy's v0,v1 match,
+// and the (a,b) coefficients for the tip.
+// From analysis: buddy triangles cycle through adjacent face vertex pairs.
+const RD_BUDDY_SPECS = [
+  // Face 0 (XY ++): buddies match fv pairs (0,3),(1,0),(2,1),(3,2) with tips
+  [{fv:[0,3],ab:[1,-.5]},{fv:[1,0],ab:[1,.5]},{fv:[2,1],ab:[-1,.5]},{fv:[3,2],ab:[-1,-.5]}],
+  [{fv:[0,1],ab:[1,.5]},{fv:[3,0],ab:[1,-.5]},{fv:[2,3],ab:[-1,-.5]},{fv:[1,2],ab:[-1,.5]}],
+  [{fv:[0,3],ab:[1,-.5]},{fv:[1,0],ab:[1,.5]},{fv:[2,1],ab:[-1,.5]},{fv:[3,2],ab:[-1,-.5]}],
+  [{fv:[0,3],ab:[1,-.5]},{fv:[1,0],ab:[1,.5]},{fv:[2,1],ab:[-1,.5]},{fv:[3,2],ab:[-1,-.5]}],
+  [{fv:[0,1],ab:[1,.5]},{fv:[3,0],ab:[1,-.5]},{fv:[2,3],ab:[-1,-.5]},{fv:[1,2],ab:[-1,.5]}],
+  [{fv:[0,1],ab:[1,.5]},{fv:[3,0],ab:[1,-.5]},{fv:[2,3],ab:[-1,-.5]},{fv:[1,2],ab:[-1,.5]}],
+  [{fv:[0,3],ab:[1,-.5]},{fv:[1,0],ab:[1,.5]},{fv:[2,1],ab:[-1,.5]},{fv:[3,2],ab:[-1,-.5]}],
+  [{fv:[0,1],ab:[1,.5]},{fv:[3,0],ab:[1,-.5]},{fv:[2,3],ab:[-1,-.5]},{fv:[1,2],ab:[-1,.5]}],
+  [{fv:[1,0],ab:[1,.5]},{fv:[0,3],ab:[1,-.5]},{fv:[3,2],ab:[-1,-.5]},{fv:[2,1],ab:[-1,.5]}],
+  [{fv:[1,0],ab:[1,.5]},{fv:[0,3],ab:[1,-.5]},{fv:[3,2],ab:[-1,-.5]},{fv:[2,1],ab:[-1,.5]}],
+  [{fv:[1,0],ab:[1,.5]},{fv:[0,3],ab:[1,-.5]},{fv:[3,2],ab:[-1,-.5]},{fv:[2,1],ab:[-1,.5]}],
+  [{fv:[1,0],ab:[1,.5]},{fv:[0,3],ab:[1,-.5]},{fv:[3,2],ab:[-1,-.5]},{fv:[2,1],ab:[-1,.5]}],
+];
+
+function computeRDVerts(h){
+  const d2=E_RD*E_RD-h*h,d=d2>0?Math.sqrt(d2):0,dS2=d/S2,dR2=d*S2;
+  // 12 faces: [cube,octa,cube,octa] vertex order
+  return [
+    [[dS2,dS2,h],[dR2,0,0],[dS2,dS2,-h],[0,dR2,0]],
+    [[dS2,-dS2,h],[dR2,0,0],[dS2,-dS2,-h],[0,-dR2,0]],
+    [[-dS2,dS2,h],[0,dR2,0],[-dS2,dS2,-h],[-dR2,0,0]],
+    [[-dS2,-dS2,h],[-dR2,0,0],[-dS2,-dS2,-h],[0,-dR2,0]],
+    [[dS2,h,dS2],[dR2,0,0],[dS2,-h,dS2],[0,0,dR2]],
+    [[dS2,-h,-dS2],[dR2,0,0],[dS2,h,-dS2],[0,0,-dR2]],
+    [[-dS2,h,dS2],[-dR2,0,0],[-dS2,-h,dS2],[0,0,dR2]],
+    [[-dS2,-h,-dS2],[0,0,-dR2],[-dS2,h,-dS2],[-dR2,0,0]],
+    [[h,dS2,dS2],[0,dR2,0],[-h,dS2,dS2],[0,0,dR2]],
+    [[h,dS2,-dS2],[0,0,-dR2],[-h,dS2,-dS2],[0,dR2,0]],
+    [[h,-dS2,dS2],[0,0,dR2],[-h,-dS2,dS2],[0,-dR2,0]],
+    [[h,-dS2,-dS2],[0,-dR2,0],[-h,-dS2,-dS2],[0,0,-dR2]],
+  ];
+}
+
+let rdMeshGroup=new THREE.Group();MG.add(rdMeshGroup);
+const rdFaceMat=new THREE.MeshStandardMaterial({color:0x38b89a,side:THREE.DoubleSide,transparent:true,opacity:.7,roughness:.5,metalness:.1,polygonOffset:true,polygonOffsetFactor:1,polygonOffsetUnits:1});
+const rdBudMat=new THREE.MeshStandardMaterial({color:0x38b89a,side:THREE.DoubleSide,transparent:true,opacity:.5,roughness:.5,metalness:.1,polygonOffset:true,polygonOffsetFactor:.5,polygonOffsetUnits:.5});
+const rdEMat=new THREE.LineBasicMaterial({color:0x1a5540});
+const rdBEMat=new THREE.LineBasicMaterial({color:0x1a6650,transparent:true,opacity:.4});
+
+function rebuildRD(h){
+  while(rdMeshGroup.children.length)rdMeshGroup.remove(rdMeshGroup.children[0]);
+  if(!$('showRD').checked){rdMeshGroup.visible=false;return;}
+  rdMeshGroup.visible=true;
+  const faces=computeRDVerts(h);
+  const showE=$('showEdges').checked;
+  
+  faces.forEach((fv,fi)=>{
+    const vs=fv.map(v=>toJB(v));
+    // Rhombus face (2 triangles)
+    const pos=new Float32Array([...vs[0],...vs[1],...vs[2],...vs[0],...vs[2],...vs[3]]);
+    const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos,3));g.computeVertexNormals();
+    rdMeshGroup.add(new THREE.Mesh(g,rdFaceMat));
+    if(showE){const pts=[...vs,vs[0]].map(v=>new THREE.Vector3(...v));rdMeshGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),rdEMat));}
+    
+    // Buddy triangles
+    const cent=vavg(...vs);
+    const e1=vsub(vs[0],cent),e2=vsub(vs[1],cent);
+    const specs=RD_BUDDY_SPECS[fi];
+    specs.forEach(sp=>{
+      const bv0=vs[sp.fv[0]],bv1=vs[sp.fv[1]];
+      const tip=vadd(cent,vadd(vmul(e1,sp.ab[0]),vmul(e2,sp.ab[1])));
+      const bp=new Float32Array([...bv0,...bv1,...tip]);
+      const bg=new THREE.BufferGeometry();bg.setAttribute('position',new THREE.BufferAttribute(bp,3));bg.computeVertexNormals();
+      rdMeshGroup.add(new THREE.Mesh(bg,rdBudMat));
+      if(showE){const pts=[bv0,bv1,tip,bv0].map(v=>new THREE.Vector3(...v));rdMeshGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),rdBEMat));}
+    });
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// CUBE O4 JITTERBUG (counter-rotating faces + buddies)
+// ═══════════════════════════════════════════════════════════
+// Cube buddy data: 6 faces × 8 triangles, all coplanar with their face.
+// In 144 unit coords. We apply O4 rotation then transform to JB coords.
+const CUBE_NORMALS=[[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]];
+const CUBE_BUDDIES_144=[
+ [[.5,.5,.5,.5,.5,0,.5,.75,.25],[.5,0,.5,.5,.5,.5,.5,.25,.75],[.5,-.5,.5,.5,0,.5,.5,-.25,.75],[.5,-.5,0,.5,-.5,.5,.5,-.75,.25],[.5,-.5,-.5,.5,-.5,0,.5,-.75,-.25],[.5,0,-.5,.5,-.5,-.5,.5,-.25,-.75],[.5,.5,-.5,.5,0,-.5,.5,.25,-.75],[.5,.5,0,.5,.5,-.5,.5,.75,-.25]],
+ [[-.5,.5,.5,-.5,0,.5,-.5,.25,.75],[-.5,.5,0,-.5,.5,.5,-.5,.75,.25],[-.5,-.5,.5,-.5,-.5,0,-.5,-.75,.25],[-.5,0,.5,-.5,-.5,.5,-.5,-.25,.75],[-.5,-.5,-.5,-.5,0,-.5,-.5,-.25,-.75],[-.5,-.5,0,-.5,-.5,-.5,-.5,-.75,-.25],[-.5,.5,-.5,-.5,.5,0,-.5,.75,-.25],[-.5,0,-.5,-.5,.5,-.5,-.5,.25,-.75]],
+ [[.5,.5,0,.5,.5,.5,.75,.5,.25],[.5,.5,.5,0,.5,.5,.25,.5,.75],[0,.5,-.5,.5,.5,-.5,.25,.5,-.75],[.5,.5,-.5,.5,.5,0,.75,.5,-.25],[0,.5,.5,-.5,.5,.5,-.25,.5,.75],[-.5,.5,.5,-.5,.5,0,-.75,.5,.25],[-.5,.5,0,-.5,.5,-.5,-.75,.5,-.25],[-.5,.5,-.5,0,.5,-.5,-.25,.5,-.75]],
+ [[0,-.5,.5,.5,-.5,.5,.25,-.5,.75],[.5,-.5,.5,.5,-.5,0,.75,-.5,.25],[.5,-.5,0,.5,-.5,-.5,.75,-.5,-.25],[.5,-.5,-.5,0,-.5,-.5,.25,-.5,-.75],[-.5,-.5,0,-.5,-.5,.5,-.75,-.5,.25],[-.5,-.5,.5,0,-.5,.5,-.25,-.5,.75],[0,-.5,-.5,-.5,-.5,-.5,-.25,-.5,-.75],[-.5,-.5,-.5,-.5,-.5,0,-.75,-.5,-.25]],
+ [[0,.5,.5,.5,.5,.5,.25,.75,.5],[.5,.5,.5,.5,0,.5,.75,.25,.5],[.5,0,.5,.5,-.5,.5,.75,-.25,.5],[.5,-.5,.5,0,-.5,.5,.25,-.75,.5],[-.5,0,.5,-.5,.5,.5,-.75,.25,.5],[-.5,.5,.5,0,.5,.5,-.25,.75,.5],[0,-.5,.5,-.5,-.5,.5,-.25,-.75,.5],[-.5,-.5,.5,-.5,0,.5,-.75,-.25,.5]],
+ [[0,-.5,-.5,.5,-.5,-.5,.25,-.75,-.5],[.5,-.5,-.5,.5,0,-.5,.75,-.25,-.5],[.5,0,-.5,.5,.5,-.5,.75,.25,-.5],[.5,.5,-.5,0,.5,-.5,.25,.75,-.5],[-.5,0,-.5,-.5,-.5,-.5,-.75,-.25,-.5],[-.5,-.5,-.5,0,-.5,-.5,-.25,-.75,-.5],[0,.5,-.5,-.5,.5,-.5,-.25,.75,-.5],[-.5,.5,-.5,-.5,0,-.5,-.75,.25,-.5]],
+];
+
+let cubeMeshGroup=new THREE.Group();MG.add(cubeMeshGroup);
+const cubeFaceMat=new THREE.MeshStandardMaterial({color:0xe8443a,side:THREE.DoubleSide,transparent:true,opacity:.7,roughness:.6,metalness:.1,polygonOffset:true,polygonOffsetFactor:1,polygonOffsetUnits:1});
+const cubeBudMat=new THREE.MeshStandardMaterial({color:0xe8443a,side:THREE.DoubleSide,transparent:true,opacity:.5,roughness:.6,metalness:.1,polygonOffset:true,polygonOffsetFactor:.5,polygonOffsetUnits:.5});
+const cubeEMat=new THREE.LineBasicMaterial({color:0x881818,transparent:true,opacity:.5});
+const cubeBEMat=new THREE.LineBasicMaterial({color:0x881818,transparent:true,opacity:.3});
+
+// O4 transform: rotate vertex in face plane by psi around normal, translate by h along normal
+// psi=0 → cube (home). We use only family A (+psi).
+function o4TransformVert(v144, faceIdx, psi){
+  const n=CUBE_NORMALS[faceIdx];
+  const h0=0.5; // face distance at psi=0
+  const h=h0*Math.cos(psi);
+  // Subtract normal component to get in-plane part
+  const nd=v144[0]*n[0]+v144[1]*n[1]+v144[2]*n[2];
+  const ip=[v144[0]-nd*n[0], v144[1]-nd*n[1], v144[2]-nd*n[2]];
+  // Rotate in-plane around normal by psi (using quaternion)
+  const q=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(n[0],n[1],n[2]), psi);
+  const rv=new THREE.Vector3(ip[0],ip[1],ip[2]).applyQuaternion(q);
+  // Add back translated normal
+  return [rv.x+h*n[0], rv.y+h*n[1], rv.z+h*n[2]];
+}
+
+function rebuildCube(cubePsi){
+  while(cubeMeshGroup.children.length)cubeMeshGroup.remove(cubeMeshGroup.children[0]);
+  if(!$('showCube').checked){cubeMeshGroup.visible=false;return;}
+  cubeMeshGroup.visible=true;
+  const showE=$('showEdges').checked;
+  const psi=cubePsi||0;
+  
+  for(let fi=0;fi<6;fi++){
+    // Transform and draw the 8 buddy triangles (which include the cube face itself)
+    const buddies=CUBE_BUDDIES_144[fi];
+    for(const b of buddies){
+      const v0=o4TransformVert([b[0],b[1],b[2]],fi,psi);
+      const v1=o4TransformVert([b[3],b[4],b[5]],fi,psi);
+      const v2=o4TransformVert([b[6],b[7],b[8]],fi,psi);
+      // Transform to JB coords
+      const jv0=toJB(v0),jv1=toJB(v1),jv2=toJB(v2);
+      const pos=new Float32Array([...jv0,...jv1,...jv2]);
+      const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(pos,3));g.computeVertexNormals();
+      cubeMeshGroup.add(new THREE.Mesh(g,cubeFaceMat));
+      if(showE){
+        const pts=[jv0,jv1,jv2,jv0].map(v=>new THREE.Vector3(...v));
+        cubeMeshGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),cubeEMat));
+      }
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════
+function $$(id){return document.getElementById(id);}
+function $(id){return document.getElementById(id);}
+rebuildCube(0);rebuildRD(0.5);updateOct(60);
+
+// Controls
+$('octAngle').oninput=e=>{if(!$('syncAnim').checked){octAngle=+e.target.value;$('octAngleV').textContent=octAngle.toFixed(0)+'°';updateOct(octAngle);}};
+$('rdH').oninput=e=>{if(!$('syncAnim').checked){rdH=+e.target.value;$('rdHV').textContent=rdH.toFixed(3);rebuildRD(rdH);}};
+$('breathSpeed').oninput=e=>{breathSpd=+e.target.value;$('breathSpeedV').textContent=breathSpd.toFixed(2);};
+$('breathSlider').oninput=e=>{breathT=+e.target.value;applyBreath(breathT);};
+['showCube','showOct','showRD','showEdges','showGaps'].forEach(id=>$(id).onchange=()=>{rebuildCube(cubePsi);rebuildRD(rdH);updateOct(octAngle);});
+$('opac').oninput=e=>{const o=+e.target.value;$('opacV').textContent=o.toFixed(2);
+  octFrontMat.opacity=o;octBackMat.opacity=o;octBudMat.opacity=o*.7;
+  rdFaceMat.opacity=o;rdBudMat.opacity=o*.7;cubeFaceMat.opacity=o;};
+
+// Breath mapping: t in [0,1]
+// t=0: Oct=60°, RD h=0.5, Cube ψ=0 (closed 144)
+// t=1: Oct=0°, RD h≈0.01, Cube ψ=max (max expand)
+// Use smooth cosine easing for organic feel
+const CUBE_PSI_MAX=Math.PI/3; // 60° max rotation (same as O4 default range)
+function applyBreath(t){
+  const smooth = 0.5 * (1 - Math.cos(Math.PI * t));
+  octAngle = 60 * (1 - smooth);  // 60 → 0
+  rdH = 0.5 * (1 - smooth) + 0.01 * smooth;  // 0.5 → 0.01
+  cubePsi = CUBE_PSI_MAX * smooth;  // 0 → 60°
+  $('octAngle').value=octAngle;$('octAngleV').textContent=octAngle.toFixed(1)+'°';
+  $('rdH').value=rdH;$('rdHV').textContent=rdH.toFixed(3);
+  $('breathV').textContent=t.toFixed(2);
+  updateOct(octAngle);rebuildRD(rdH);rebuildCube(cubePsi);
+}
+
+window.setBreath=t=>{breathT=t;$('breathSlider').value=t;applyBreath(t);};
+window.setOctAngle=a=>{octAngle=a;$('octAngle').value=a;$('octAngleV').textContent=a+'°';updateOct(a);};
+
+// ═══════════════════════════════════════════════════════════
+// ANIMATION LOOP
+// ═══════════════════════════════════════════════════════════
+let octAngle=60,rdH=.5,cubePsi=0,breathSpd=.8,breathT=0,breathDir=1;
+let drag=false,pm={x:0,y:0};
+cv.onmousedown=e=>{drag=true;pm={x:e.clientX,y:e.clientY};};
+cv.onmousemove=e=>{if(drag){MG.rotation.y+=(e.clientX-pm.x)*.01;MG.rotation.x+=(e.clientY-pm.y)*.01;pm={x:e.clientX,y:e.clientY};}};
+cv.onmouseup=cv.onmouseleave=()=>drag=false;
+cv.onwheel=e=>{e.preventDefault();cam.position.multiplyScalar(1+e.deltaY*.001);};
+onresize=()=>{cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();ren.setSize(innerWidth,innerHeight);};
+
+(function loop(){
+  requestAnimationFrame(loop);
+  if($('syncAnim').checked){
+    breathT+=0.003*breathSpd*breathDir;
+    if(breathT>=1){breathT=1;breathDir=-1;}
+    if(breathT<=0){breathT=0;breathDir=1;}
+    $('breathSlider').value=breathT;
+    applyBreath(breathT);
+  }
+  if($('autoRot').checked&&!drag)MG.rotation.y+=.003;
+  ren.render(sc,cam);
+})();
+</script>
+</body>
+</html>
