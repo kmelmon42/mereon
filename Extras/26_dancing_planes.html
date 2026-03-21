@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>26 Dancing Planes</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:#06060e;color:#d8dce6;overflow:hidden;}
+#ui{position:fixed;top:0;left:0;background:rgba(8,8,18,0.97);padding:18px;z-index:100;width:280px;height:100vh;overflow-y:auto;border-right:1px solid rgba(255,255,255,0.06);}
+#ui::-webkit-scrollbar{width:4px;} #ui::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:2px;}
+h1{font-size:0.82rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#8ab4f8;margin-bottom:4px;}
+.sub{font-size:0.66rem;color:#556;line-height:1.5;margin-bottom:14px;}
+h2{font-size:0.62rem;font-weight:500;color:#445;margin:12px 0 6px;letter-spacing:0.1em;text-transform:uppercase;padding-top:10px;border-top:1px solid rgba(255,255,255,0.04);}
+.cr{margin:5px 0;font-size:0.7rem;display:flex;align-items:center;gap:8px;}
+.cr label{display:flex;align-items:center;gap:6px;cursor:pointer;color:#778;}
+input[type=checkbox]{accent-color:#8ab4f8;}
+input[type=range]{width:100%;accent-color:#8ab4f8;height:3px;}
+.val{font-family:'JetBrains Mono',monospace;font-size:0.62rem;color:#8ab4f8;min-width:34px;text-align:right;}
+button{font-family:'DM Sans';background:rgba(255,255,255,0.04);color:#889;border:1px solid rgba(255,255,255,0.08);padding:5px 10px;border-radius:4px;cursor:pointer;font-size:0.64rem;font-weight:500;transition:all 0.2s;margin:2px;}
+button:hover{background:rgba(255,255,255,0.08);color:#aab;}
+.sw{width:9px;height:9px;border-radius:2px;display:inline-block;}
+.stats{font-family:'JetBrains Mono',monospace;font-size:0.58rem;color:#445;margin-top:10px;padding:10px;background:rgba(0,0,0,0.3);border-radius:6px;line-height:1.7;}
+.stats .hl{color:#8ab4f8;}
+#cv{width:100vw;height:100vh;}
+</style>
+</head>
+<body>
+<div id="ui">
+<h1>26 Dancing Planes</h1>
+<div class="sub">
+6 squares + 8 triangles + 12 rhombi — the 26 face-planes of the 144, each animated by its dipolygonid mechanism.
+</div>
+<h2>Breathing</h2>
+<div class="cr"><label><input type="checkbox" id="anim" checked> Animate</label></div>
+<div class="cr"><label>Breath</label><input type="range" id="breath" min="0" max="1" value="0" step="0.003"><span class="val" id="breathV">0.00</span></div>
+<div class="cr"><label>Speed</label><input type="range" id="speed" min="0.1" max="3" value="0.8" step="0.05"><span class="val" id="speedV">0.80</span></div>
+<div style="display:flex;gap:3px;margin:5px 0;">
+<button onclick="setB(0)">Closed</button><button onclick="setB(0.5)">Half</button><button onclick="setB(1)">Full</button>
+</div>
+<h2>Show</h2>
+<div class="cr"><label><input type="checkbox" id="showCube" checked> <span class="sw" style="background:#e85050"></span> 6 squares (O₄)</label></div>
+<div class="cr"><label><input type="checkbox" id="showOct" checked> <span class="sw" style="background:#f0a030"></span> 8 triangles (T₂)</label></div>
+<div class="cr"><label><input type="checkbox" id="showRD" checked> <span class="sw" style="background:#38b89a"></span> 12 rhombi (RD belt)</label></div>
+<div class="cr"><label><input type="checkbox" id="showEdges" checked> Outlines</label></div>
+<div class="cr"><label><input type="checkbox" id="showGaps"> Oct gap triangles</label></div>
+<div class="cr"><label><input type="checkbox" id="autoRot" checked> Auto rotate</label></div>
+<div class="cr"><label>Opacity</label><input type="range" id="opac" min="0.15" max="1" value="0.6" step="0.05"><span class="val" id="opacV">0.60</span></div>
+<div class="stats">
+<span class="hl">6</span> {100} squares → O₄ dipolygonid<br>
+<span class="hl">8</span> {111} triangles → Fuller Jitterbug (T₂)<br>
+<span class="hl">12</span> {110} rhombi → RD belt mechanism<br><br>
+At breath=0, all 26 planes form the<br>
+envelope of the 144 Polyhedron.
+</div>
+</div>
+<div id="cv"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+'use strict';
+const S2=Math.sqrt(2),S3=Math.sqrt(3),E_RD=S3/2;
+const C45=Math.cos(Math.PI/4),S45=Math.sin(Math.PI/4);
+function toJB(v){const x=v[0]/S2,y=v[1]/S2,z=v[2]/S2;return[x*C45-y*S45,x*S45+y*C45,z];}
+function vadd(a,b){return[a[0]+b[0],a[1]+b[1],a[2]+b[2]];}
+function vsub(a,b){return[a[0]-b[0],a[1]-b[1],a[2]-b[2]];}
+function vmul(v,s){return[v[0]*s,v[1]*s,v[2]*s];}
+function vdot(a,b){return a[0]*b[0]+a[1]*b[1]+a[2]*b[2];}
+
+function $(id){return document.getElementById(id);}
+
+// ═══════════════════════════════════════════════════════════
+// THREE.JS SETUP
+// ═══════════════════════════════════════════════════════════
+const cv=document.getElementById('cv'),sc=new THREE.Scene();
+sc.background=new THREE.Color(0x06060e);
+const cam=new THREE.PerspectiveCamera(50,innerWidth/innerHeight,.1,1000);
+cam.position.set(0,0,4);
+const ren=new THREE.WebGLRenderer({antialias:true});
+ren.setSize(innerWidth,innerHeight);ren.setPixelRatio(Math.min(devicePixelRatio,2));cv.appendChild(ren.domElement);
+sc.add(new THREE.AmbientLight(0xffffff,.5));
+const dl1=new THREE.DirectionalLight(0xffffff,.6);dl1.position.set(5,5,5);sc.add(dl1);
+const dl2=new THREE.DirectionalLight(0xffffff,.25);dl2.position.set(-3,-2,3);sc.add(dl2);
+const MG=new THREE.Group();sc.add(MG);
+
+// ═══════════════════════════════════════════════════════════
+// OCT JITTERBUG (proven math from single_jitterbug.html)
+// Uses JB coords: square-base octahedron
+// ═══════════════════════════════════════════════════════════
+const EL=1;
+const ov=[
+  new THREE.Vector3(0.5,0.5,0), new THREE.Vector3(-0.5,0.5,0),
+  new THREE.Vector3(-0.5,-0.5,0), new THREE.Vector3(0.5,-0.5,0),
+  new THREE.Vector3(0,0,1/S2), new THREE.Vector3(0,0,-1/S2)
+];
+const octFI=[[0,1,4],[1,2,4],[2,3,4],[3,0,4],[0,3,5],[3,2,5],[2,1,5],[1,0,5]];
+const octInitR=Math.sqrt(2/3)*Math.cos(Math.PI/180*60);
+
+// Precompute hinge axes (face centroid normalized)
+const octHinges=octFI.map(fi=>{
+  const c=new THREE.Vector3().add(ov[fi[0]]).add(ov[fi[1]]).add(ov[fi[2]]).divideScalar(3);
+  return c.normalize();
+});
+
+// Compute world positions of oct triangle vertices at given angle
+function octVertPositions(angle){
+  const curR=Math.sqrt(2/3)*Math.cos(Math.PI/180*angle)-octInitR;
+  return octFI.map((fi,idx)=>{
+    const hinge=octHinges[idx];
+    const dir=(idx%2===0)?-1:1;
+    const rad=(Math.PI/180)*(angle-60)*dir;
+    const q=new THREE.Quaternion().setFromAxisAngle(hinge,rad);
+    const pos=hinge.clone().multiplyScalar(curR);
+    return fi.map(vi=>{ 
+      const v=ov[vi].clone().applyQuaternion(q).add(pos);
+      return [v.x,v.y,v.z];
+    });
+  });
+}
+
+// Gap triangles: meeting vertex stays connected, split vertex diverges
+const gapSpecs=[
+  {m:0,s:1,a:0,b:7},{m:0,s:3,a:3,b:4},{m:4,s:0,a:0,b:3},{m:5,s:0,a:4,b:7},
+  {m:2,s:1,a:1,b:6},{m:1,s:4,a:0,b:1},{m:1,s:5,a:6,b:7},{m:2,s:3,a:2,b:5},
+  {m:4,s:2,a:1,b:2},{m:5,s:2,a:5,b:6},{m:3,s:4,a:2,b:3},{m:3,s:5,a:4,b:5}
+];
+function octGapPositions(angle){
+  const curR=Math.sqrt(2/3)*Math.cos(Math.PI/180*angle)-octInitR;
+  return gapSpecs.map(sp=>{
+    const hA=octHinges[sp.a],hB=octHinges[sp.b];
+    const dA=(sp.a%2===0)?-1:1,dB=(sp.b%2===0)?-1:1;
+    const rA=(Math.PI/180)*(angle-60)*dA,rB=(Math.PI/180)*(angle-60)*dB;
+    const qA=new THREE.Quaternion().setFromAxisAngle(hA,rA);
+    const qB=new THREE.Quaternion().setFromAxisAngle(hB,rB);
+    const pA=hA.clone().multiplyScalar(curR),pB=hB.clone().multiplyScalar(curR);
+    const mW=ov[sp.m].clone().applyQuaternion(qA).add(pA);
+    const sA=ov[sp.s].clone().applyQuaternion(qA).add(pA);
+    const sB=ov[sp.s].clone().applyQuaternion(qB).add(pB);
+    return [[mW.x,mW.y,mW.z],[sA.x,sA.y,sA.z],[sB.x,sB.y,sB.z]];
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// CUBE O₄ (face rotation around normal + translation)
+// Works in 144 unit coords, then toJB
+// ═══════════════════════════════════════════════════════════
+const CUBE_NORMALS=[[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]];
+function cubeCorners(ni){
+  const n=CUBE_NORMALS[ni],s=0.5;
+  const ax=Math.abs(n[0])>0.5?0:Math.abs(n[1])>0.5?1:2;
+  const a1=(ax+1)%3,a2=(ax+2)%3;
+  const corners=[];
+  for(const s1 of [s,-s]) for(const s2 of [s,-s]){
+    const v=[0,0,0]; v[ax]=n[ax]*s; v[a1]=s1; v[a2]=s2;
+    corners.push(v);
+  }
+  // Order as proper quad winding: ++, +-, --, -+
+  return [corners[0],corners[1],corners[3],corners[2]];
+}
+
+function cubeFaceVerts(faceIdx,psi){
+  const n=CUBE_NORMALS[faceIdx];
+  const h0=0.5,h=h0*Math.cos(psi);
+  const corners=cubeCorners(faceIdx);
+  return corners.map(v=>{
+    const nd=vdot(v,n);
+    const ip=[v[0]-nd*n[0],v[1]-nd*n[1],v[2]-nd*n[2]];
+    const q=new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(...n),psi);
+    const rv=new THREE.Vector3(...ip).applyQuaternion(q);
+    return toJB([rv.x+h*n[0],rv.y+h*n[1],rv.z+h*n[2]]);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+// RD BELT MECHANISM (in 144 unit coords, then toJB)
+// ═══════════════════════════════════════════════════════════
+function rdFaceVerts(fi,h){
+  const d2=E_RD*E_RD-h*h,d=d2>0?Math.sqrt(d2):0,dS2=d/S2,dR2=d*S2;
+  const F=[
+    [[dS2,dS2,h],[dR2,0,0],[dS2,dS2,-h],[0,dR2,0]],
+    [[dS2,-dS2,h],[dR2,0,0],[dS2,-dS2,-h],[0,-dR2,0]],
+    [[-dS2,dS2,h],[0,dR2,0],[-dS2,dS2,-h],[-dR2,0,0]],
+    [[-dS2,-dS2,h],[-dR2,0,0],[-dS2,-dS2,-h],[0,-dR2,0]],
+    [[dS2,h,dS2],[dR2,0,0],[dS2,-h,dS2],[0,0,dR2]],
+    [[dS2,-h,-dS2],[dR2,0,0],[dS2,h,-dS2],[0,0,-dR2]],
+    [[-dS2,h,dS2],[-dR2,0,0],[-dS2,-h,dS2],[0,0,dR2]],
+    [[-dS2,-h,-dS2],[0,0,-dR2],[-dS2,h,-dS2],[-dR2,0,0]],
+    [[h,dS2,dS2],[0,dR2,0],[-h,dS2,dS2],[0,0,dR2]],
+    [[h,dS2,-dS2],[0,0,-dR2],[-h,dS2,-dS2],[0,dR2,0]],
+    [[h,-dS2,dS2],[0,0,dR2],[-h,-dS2,dS2],[0,-dR2,0]],
+    [[h,-dS2,-dS2],[0,-dR2,0],[-h,-dS2,-dS2],[0,0,-dR2]],
+  ];
+  return F[fi].map(v=>toJB(v));
+}
+
+// ═══════════════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════════════
+function rebuild(octAngle,cubePsi,rdH){
+  while(MG.children.length)MG.remove(MG.children[0]);
+  const showC=$('showCube').checked,showO=$('showOct').checked,showR=$('showRD').checked;
+  const showE=$('showEdges').checked,showG=$('showGaps').checked;
+  const opacity=+$('opac').value;
+
+  function addPoly(verts,color,edgeColor){
+    const pos=[];
+    for(let i=1;i<verts.length-1;i++) pos.push(...verts[0],...verts[i],...verts[i+1]);
+    const g=new THREE.BufferGeometry();
+    g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));g.computeVertexNormals();
+    MG.add(new THREE.Mesh(g,new THREE.MeshStandardMaterial({
+      color,side:THREE.DoubleSide,transparent:true,opacity,roughness:.35,metalness:.1
+    })));
+    if(showE){
+      const pts=[...verts,verts[0]].map(v=>new THREE.Vector3(...v));
+      MG.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),
+        new THREE.LineBasicMaterial({color:edgeColor})));
+    }
+  }
+
+  // 8 Oct triangles
+  if(showO){
+    const faces=octVertPositions(octAngle);
+    faces.forEach(vs=>addPoly(vs,0xf0a030,0xffc050));
+    // Gap triangles
+    if(showG){
+      const gaps=octGapPositions(octAngle);
+      gaps.forEach(vs=>addPoly(vs,0xf0a030,0xffc050));
+    }
+  }
+
+  // 6 Cube squares
+  if(showC) for(let i=0;i<6;i++) addPoly(cubeFaceVerts(i,cubePsi),0xe85050,0xff7070);
+
+  // 12 RD rhombi
+  if(showR) for(let i=0;i<12;i++) addPoly(rdFaceVerts(i,rdH),0x38b89a,0x50ddb8);
+}
+
+// ═══════════════════════════════════════════════════════════
+// BREATH MAPPING & CONTROLS
+// ═══════════════════════════════════════════════════════════
+const CUBE_PSI_MAX=Math.PI/3;
+function applyBreath(t){
+  const sm=0.5*(1-Math.cos(Math.PI*t));
+  const oA=60*(1-sm), rH=0.5*(1-sm)+0.01*sm, cP=CUBE_PSI_MAX*sm;
+  $('breath').value=t;$('breathV').textContent=t.toFixed(2);
+  rebuild(oA,cP,rH);
+}
+window.setB=t=>{breathT=t;applyBreath(t);};
+
+let breathT=0,breathDir=1,spd=0.8;
+$('breath').oninput=e=>{breathT=+e.target.value;applyBreath(breathT);};
+$('speed').oninput=e=>{spd=+e.target.value;$('speedV').textContent=spd.toFixed(2);};
+['showCube','showOct','showRD','showEdges','showGaps'].forEach(id=>$(id).onchange=()=>applyBreath(breathT));
+$('opac').oninput=e=>{$('opacV').textContent=(+e.target.value).toFixed(2);applyBreath(breathT);};
+applyBreath(0);
+
+let drag=false,pm={x:0,y:0};
+cv.onmousedown=e=>{drag=true;pm={x:e.clientX,y:e.clientY};};
+cv.onmousemove=e=>{if(drag){MG.rotation.y+=(e.clientX-pm.x)*.01;MG.rotation.x+=(e.clientY-pm.y)*.01;pm={x:e.clientX,y:e.clientY};}};
+cv.onmouseup=cv.onmouseleave=()=>drag=false;
+cv.onwheel=e=>{e.preventDefault();cam.position.multiplyScalar(1+e.deltaY*.001);};
+onresize=()=>{cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();ren.setSize(innerWidth,innerHeight);};
+
+(function loop(){
+  requestAnimationFrame(loop);
+  if($('anim').checked){
+    breathT+=.003*spd*breathDir;
+    if(breathT>=1){breathT=1;breathDir=-1;}
+    if(breathT<=0){breathT=0;breathDir=1;}
+    applyBreath(breathT);
+  }
+  if($('autoRot').checked&&!drag)MG.rotation.y+=.003;
+  ren.render(sc,cam);
+})();
+</script>
+</body>
+</html>
