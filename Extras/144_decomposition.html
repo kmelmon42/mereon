@@ -84,7 +84,7 @@
             </div>
             <div class="meta">
                 <span>6</span> {100} planes · d = <span>1/2</span><br>
-                <span>48</span> faces · 8 triangles per square face<br>
+                <span>48</span> faces · 8 △ per □ face<br>
                 Vertices: 8 at (±½, ±½, ±½)
             </div>
         </div>
@@ -96,7 +96,7 @@
             </div>
             <div class="meta">
                 <span>8</span> {111} planes · d = <span>1/√3</span><br>
-                <span>48</span> faces · 6 triangles per triangular face<br>
+                <span>48</span> faces · 6 △ per △ face<br>
                 Vertices: 6 at (±1, 0, 0) etc.
             </div>
         </div>
@@ -108,7 +108,7 @@
             </div>
             <div class="meta">
                 <span>12</span> {110} planes · d = <span>1/√2</span><br>
-                <span>48</span> faces · 4 triangles per rhombic face<br>
+                <span>48</span> faces · 4 △ per ◇ face<br>
                 Vertices: 14 (8 cube + 6 oct type)
             </div>
         </div>
@@ -116,46 +116,51 @@
         <h2>Quick Views</h2>
         <div class="btn-row">
             <button id="showAll" class="active">All Three</button>
-            <button id="showCube">Cube Only</button>
-            <button id="showOct">Oct Only</button>
-            <button id="showRD">RD Only</button>
+            <button id="showCube">Cube</button>
+            <button id="showOct">Octahedron</button>
+            <button id="showRD">RD</button>
         </div>
         <div class="btn-row">
-            <button id="showCubeOct">Cube + Oct</button>
-            <button id="showCubeRD">Cube + RD</button>
-            <button id="showOctRD">Oct + RD</button>
+            <button id="showCubeOct">Cube+Oct</button>
+            <button id="showCubeRD">Cube+RD</button>
+            <button id="showOctRD">Oct+RD</button>
         </div>
 
         <h2>Display</h2>
         <div class="control-row">
-            <label><input type="checkbox" id="showEdges" checked> Edges</label>
+            <label><input type="checkbox" id="showEdges" checked> 144 triangle edges</label>
         </div>
         <div class="control-row">
-            <label><input type="checkbox" id="showWireframes"> Parent wireframes</label>
+            <label><input type="checkbox" id="showParentFaces" checked> Parent face overlays</label>
+        </div>
+        <div class="control-row">
+            <label><input type="checkbox" id="showParentEdges" checked> Parent face outlines</label>
+        </div>
+        <div class="control-row">
+            <label><input type="checkbox" id="showWireframes"> Full parent wireframes</label>
         </div>
         <div class="control-row">
             <label><input type="checkbox" id="autoRotate" checked> Auto rotate</label>
         </div>
         <div class="control-row">
-            <label>Opacity</label>
-            <input type="range" id="faceOpacity" min="0.1" max="1.0" value="0.8" step="0.05">
-            <span class="range-label" id="opacVal">0.8</span>
+            <label>Face opacity</label>
+            <input type="range" id="faceOpacity" min="0.1" max="1.0" value="0.75" step="0.05">
+            <span class="range-label" id="opacVal">0.75</span>
         </div>
         <div class="control-row">
-            <label><input type="checkbox" id="explodeMode"> Explode view</label>
-        </div>
-        <div class="control-row" id="explodeRow" style="display:none">
-            <label>Distance</label>
-            <input type="range" id="explodeDist" min="0.0" max="0.5" value="0.15" step="0.01">
-            <span class="range-label" id="explVal">0.15</span>
+            <label>Overlay opacity</label>
+            <input type="range" id="overlayOpacity" min="0.02" max="0.4" value="0.12" step="0.01">
+            <span class="range-label" id="ovrVal">0.12</span>
         </div>
 
         <div class="stats-box">
-            <strong>Decomposition Summary</strong><br>
+            <strong>Decomposition</strong><br>
             <span class="highlight">144</span> = <span class="highlight">48</span> + <span class="highlight">48</span> + <span class="highlight">48</span><br>
             <span class="highlight">26</span> planes = <span class="highlight">6</span> + <span class="highlight">8</span> + <span class="highlight">12</span><br>
-            <span class="highlight">74</span> vertices = <span class="highlight">6</span> oct + <span class="highlight">8</span> cube + <span class="highlight">12</span> cuboctahedron + <span class="highlight">48</span> general<br>
-            <span class="highlight">216</span> edges = <span class="highlight">72</span> intra-family + <span class="highlight">144</span> inter-family
+            Each parent face (outlined) is subdivided<br>
+            into triangles by the other two polyhedra.<br>
+            <br>
+            Cube □ → 8 △ &nbsp; Oct △ → 6 △ &nbsp; RD ◇ → 4 △
         </div>
     </div>
     <div id="canvas-container"></div>
@@ -170,6 +175,7 @@
     function vsub(a,b) { return [a[0]-b[0],a[1]-b[1],a[2]-b[2]]; }
     function vmul(v,s) { return [v[0]*s,v[1]*s,v[2]*s]; }
     function vdot(a,b) { return a[0]*b[0]+a[1]*b[1]+a[2]*b[2]; }
+    function vcross(a,b) { return [a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0]]; }
     function vlen(v) { return Math.sqrt(vdot(v,v)); }
     function vnorm(v) { const l=vlen(v); return l?vmul(v,1/l):[0,0,0]; }
     function vavg(...vs) {
@@ -230,7 +236,7 @@
     function faceNormal(tri) {
         const v0=VU[tri[0]], v1=VU[tri[1]], v2=VU[tri[2]];
         const e1=vsub(v1,v0), e2=vsub(v2,v0);
-        let n=[e1[1]*e2[2]-e1[2]*e2[1], e1[2]*e2[0]-e1[0]*e2[2], e1[0]*e2[1]-e1[1]*e2[0]];
+        let n=vcross(e1,e2);
         const nl=vlen(n); if(nl<1e-12) return {n:[0,0,0],d:0};
         n=vmul(n,1/nl);
         if(vdot(n,vavg(v0,v1,v2))<0) n=vmul(n,-1);
@@ -249,6 +255,40 @@
         const {n,d} = faceNormal(tri);
         return { tri, n, d, family: classifyFace(n), centroid: vavg(VU[tri[0]],VU[tri[1]],VU[tri[2]]) };
     });
+
+    // ======== PARENT FACE DATA ========
+    const PARENT_CUBE_FACES = [
+      [[0.5,-0.5,0.5],[0.5,-0.5,-0.5],[0.5,0.5,-0.5],[0.5,0.5,0.5]],
+      [[-0.5,0.5,-0.5],[-0.5,-0.5,-0.5],[-0.5,-0.5,0.5],[-0.5,0.5,0.5]],
+      [[0.5,0.5,-0.5],[-0.5,0.5,-0.5],[-0.5,0.5,0.5],[0.5,0.5,0.5]],
+      [[-0.5,-0.5,0.5],[-0.5,-0.5,-0.5],[0.5,-0.5,-0.5],[0.5,-0.5,0.5]],
+      [[-0.5,0.5,0.5],[-0.5,-0.5,0.5],[0.5,-0.5,0.5],[0.5,0.5,0.5]],
+      [[0.5,-0.5,-0.5],[-0.5,-0.5,-0.5],[-0.5,0.5,-0.5],[0.5,0.5,-0.5]],
+    ];
+    const PARENT_OCT_FACES = [
+      [[1,0,0],[0,1,0],[0,0,1]],
+      [[1,0,0],[0,0,1],[0,-1,0]],
+      [[1,0,0],[0,-1,0],[0,0,-1]],
+      [[1,0,0],[0,0,-1],[0,1,0]],
+      [[-1,0,0],[0,0,1],[0,1,0]],
+      [[-1,0,0],[0,-1,0],[0,0,1]],
+      [[-1,0,0],[0,0,-1],[0,-1,0]],
+      [[-1,0,0],[0,1,0],[0,0,-1]],
+    ];
+    const PARENT_RD_FACES = [
+      [[1.0,0.0,0.0],[0.5,0.5,-0.5],[0.0,1.0,0.0],[0.5,0.5,0.5]],
+      [[0.0,-1.0,0.0],[0.5,-0.5,-0.5],[1.0,0.0,0.0],[0.5,-0.5,0.5]],
+      [[0.0,1.0,0.0],[-0.5,0.5,-0.5],[-1.0,0.0,0.0],[-0.5,0.5,0.5]],
+      [[-1.0,0.0,0.0],[-0.5,-0.5,-0.5],[0.0,-1.0,0.0],[-0.5,-0.5,0.5]],
+      [[0.0,0.0,1.0],[0.5,-0.5,0.5],[1.0,0.0,0.0],[0.5,0.5,0.5]],
+      [[1.0,0.0,0.0],[0.5,-0.5,-0.5],[0.0,0.0,-1.0],[0.5,0.5,-0.5]],
+      [[-1.0,0.0,0.0],[-0.5,-0.5,0.5],[0.0,0.0,1.0],[-0.5,0.5,0.5]],
+      [[0.0,0.0,-1.0],[-0.5,-0.5,-0.5],[-1.0,0.0,0.0],[-0.5,0.5,-0.5]],
+      [[0.0,1.0,0.0],[-0.5,0.5,0.5],[0.0,0.0,1.0],[0.5,0.5,0.5]],
+      [[0.0,0.0,-1.0],[-0.5,0.5,-0.5],[0.0,1.0,0.0],[0.5,0.5,-0.5]],
+      [[0.0,0.0,1.0],[-0.5,-0.5,0.5],[0.0,-1.0,0.0],[0.5,-0.5,0.5]],
+      [[0.0,-1.0,0.0],[-0.5,-0.5,-0.5],[0.0,0.0,-1.0],[0.5,-0.5,-0.5]],
+    ];
 
     // ======== THREE.JS SETUP ========
     const container = document.getElementById('canvas-container');
@@ -272,14 +312,26 @@
     // ======== COLORS ========
     const COLORS = { cube: 0xe8443a, oct: 0xf0a030, rd: 0x38b89a };
     const EDGE_COLORS = { cube: 0xaa2020, oct: 0xb07018, rd: 0x1a7a60 };
+    const OVERLAY_COLORS = { cube: 0xff6655, oct: 0xffcc44, rd: 0x44ddbb };
+    const OUTLINE_COLORS = { cube: 0xff8877, oct: 0xffdd66, rd: 0x66eedd };
 
     // ======== STATE ========
     let visible = { cube: true, oct: true, rd: true };
-    let faceOpacity = 0.8;
+    let faceOpacity = 0.75;
+    let overlayOpacity = 0.12;
     let showEdges = true;
+    let showParentFaces = true;
+    let showParentEdges = true;
     let showWireframes = false;
-    let explodeMode = false;
-    let explodeDist = 0.15;
+
+    // ======== TRIANGULATE POLYGON ========
+    function triangulatePoly(verts) {
+        const tris = [];
+        for(let i=1; i<verts.length-1; i++) {
+            tris.push(verts[0], verts[i], verts[i+1]);
+        }
+        return tris;
+    }
 
     // ======== BUILD SCENE ========
     function buildScene() {
@@ -287,9 +339,60 @@
             const c = mainGroup.children[0];
             mainGroup.remove(c);
             if(c.geometry) c.geometry.dispose();
-            if(c.material) c.material.dispose();
+            if(c.material) {
+                if(Array.isArray(c.material)) c.material.forEach(m=>m.dispose());
+                else c.material.dispose();
+            }
         }
 
+        // --- Parent face overlays (behind the 144 faces) ---
+        if(showParentFaces || showParentEdges) {
+            const parentSets = [
+                { key: 'cube', faces: PARENT_CUBE_FACES },
+                { key: 'oct',  faces: PARENT_OCT_FACES },
+                { key: 'rd',   faces: PARENT_RD_FACES },
+            ];
+            for(const ps of parentSets) {
+                if(!visible[ps.key]) continue;
+
+                if(showParentFaces) {
+                    const pos = [];
+                    for(const face of ps.faces) {
+                        const tris = triangulatePoly(face);
+                        for(const v of tris) pos.push(v[0], v[1], v[2]);
+                    }
+                    const geom = new THREE.BufferGeometry();
+                    geom.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+                    geom.computeVertexNormals();
+                    const mat = new THREE.MeshStandardMaterial({
+                        color: OVERLAY_COLORS[ps.key], side: THREE.DoubleSide,
+                        transparent: true, opacity: overlayOpacity,
+                        depthWrite: false,
+                        polygonOffset: true, polygonOffsetFactor: 2, polygonOffsetUnits: 2,
+                    });
+                    mainGroup.add(new THREE.Mesh(geom, mat));
+                }
+
+                if(showParentEdges) {
+                    const linePos = [];
+                    for(const face of ps.faces) {
+                        for(let i=0; i<face.length; i++) {
+                            const a = face[i], b = face[(i+1)%face.length];
+                            linePos.push(a[0],a[1],a[2], b[0],b[1],b[2]);
+                        }
+                    }
+                    const lGeom = new THREE.BufferGeometry();
+                    lGeom.setAttribute('position', new THREE.Float32BufferAttribute(linePos, 3));
+                    const lMat = new THREE.LineBasicMaterial({
+                        color: OUTLINE_COLORS[ps.key], transparent: true, opacity: 0.6,
+                        linewidth: 2,
+                    });
+                    mainGroup.add(new THREE.LineSegments(lGeom, lMat));
+                }
+            }
+        }
+
+        // --- 144 triangle faces (colored by family) ---
         for(const fam of ['cube', 'oct', 'rd']) {
             if(!visible[fam]) continue;
 
@@ -299,24 +402,11 @@
 
             for(const f of faces) {
                 const tri = f.tri;
-                let v0 = VU[tri[0]], v1 = VU[tri[1]], v2 = VU[tri[2]];
-
-                if(explodeMode) {
-                    // Explode: shift faces outward along their normal
-                    const offset = vmul(f.n, explodeDist);
-                    v0 = vadd(v0, offset);
-                    v1 = vadd(v1, offset);
-                    v2 = vadd(v2, offset);
-                }
-
+                const v0 = VU[tri[0]], v1 = VU[tri[1]], v2 = VU[tri[2]];
                 pos.push(...v0, ...v1, ...v2);
-
-                if(showEdges) {
-                    edgeLines.push(v0, v1, v1, v2, v2, v0);
-                }
+                if(showEdges) edgeLines.push(v0, v1, v1, v2, v2, v0);
             }
 
-            // Faces
             const geom = new THREE.BufferGeometry();
             geom.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
             geom.computeVertexNormals();
@@ -328,59 +418,49 @@
             });
             mainGroup.add(new THREE.Mesh(geom, mat));
 
-            // Edges
             if(showEdges && edgeLines.length > 0) {
                 const eGeom = new THREE.BufferGeometry();
                 const ePos = [];
                 for(const v of edgeLines) ePos.push(...v);
                 eGeom.setAttribute('position', new THREE.Float32BufferAttribute(ePos, 3));
                 const eMat = new THREE.LineBasicMaterial({
-                    color: EDGE_COLORS[fam], transparent: true, opacity: 0.5
+                    color: EDGE_COLORS[fam], transparent: true, opacity: 0.4
                 });
                 mainGroup.add(new THREE.LineSegments(eGeom, eMat));
             }
         }
 
-        // Parent wireframes
+        // --- Full parent wireframes (optional) ---
         if(showWireframes) {
-            // Cube wireframe
             if(visible.cube) {
                 const s = 0.5;
                 const cv = [[-s,-s,-s],[-s,-s,s],[-s,s,-s],[-s,s,s],[s,-s,-s],[s,-s,s],[s,s,-s],[s,s,s]];
                 const ce = [[0,1],[0,2],[0,4],[1,3],[1,5],[2,3],[2,6],[3,7],[4,5],[4,6],[5,7],[6,7]];
-                const cMat = new THREE.LineBasicMaterial({color: 0xe8443a, transparent: true, opacity: 0.25});
+                const cMat = new THREE.LineBasicMaterial({color: 0xe8443a, transparent: true, opacity: 0.2});
                 for(const [i,j] of ce) {
-                    const g = new THREE.BufferGeometry().setFromPoints([vec3(cv[i]), vec3(cv[j])]);
-                    mainGroup.add(new THREE.Line(g, cMat));
+                    mainGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([vec3(cv[i]), vec3(cv[j])]), cMat));
                 }
             }
-            // Octahedron wireframe
             if(visible.oct) {
                 const ov = [[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]];
                 const oe = [[0,2],[0,3],[0,4],[0,5],[1,2],[1,3],[1,4],[1,5],[2,4],[4,3],[3,5],[5,2]];
-                const oMat = new THREE.LineBasicMaterial({color: 0xf0a030, transparent: true, opacity: 0.25});
+                const oMat = new THREE.LineBasicMaterial({color: 0xf0a030, transparent: true, opacity: 0.2});
                 for(const [i,j] of oe) {
-                    const g = new THREE.BufferGeometry().setFromPoints([vec3(ov[i]), vec3(ov[j])]);
-                    mainGroup.add(new THREE.Line(g, oMat));
+                    mainGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([vec3(ov[i]), vec3(ov[j])]), oMat));
                 }
             }
-            // RD wireframe
             if(visible.rd) {
                 const rv = [];
                 for(let s0 of [-1,1]) for(let s1 of [-1,1]) for(let s2 of [-1,1]) rv.push([s0*0.5, s1*0.5, s2*0.5]);
                 rv.push([1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1]);
-                // RD edges: each axis vertex connects to 4 cube-type vertices
                 const re = [];
-                for(let i=0; i<8; i++) {
-                    for(let j=8; j<14; j++) {
-                        const d = Math.sqrt((rv[i][0]-rv[j][0])**2+(rv[i][1]-rv[j][1])**2+(rv[i][2]-rv[j][2])**2);
-                        if(Math.abs(d - Math.sqrt(0.75)) < 0.01) re.push([i,j]);
-                    }
+                for(let i=0; i<8; i++) for(let j=8; j<14; j++) {
+                    const d = Math.sqrt((rv[i][0]-rv[j][0])**2+(rv[i][1]-rv[j][1])**2+(rv[i][2]-rv[j][2])**2);
+                    if(Math.abs(d - Math.sqrt(0.75)) < 0.01) re.push([i,j]);
                 }
-                const rMat = new THREE.LineBasicMaterial({color: 0x38b89a, transparent: true, opacity: 0.25});
+                const rMat = new THREE.LineBasicMaterial({color: 0x38b89a, transparent: true, opacity: 0.2});
                 for(const [i,j] of re) {
-                    const g = new THREE.BufferGeometry().setFromPoints([vec3(rv[i]), vec3(rv[j])]);
-                    mainGroup.add(new THREE.Line(g, rMat));
+                    mainGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints([vec3(rv[i]), vec3(rv[j])]), rMat));
                 }
             }
         }
@@ -417,20 +497,17 @@
     document.getElementById('showOctRD').addEventListener('click', () => { setVisible(false,true,true); document.getElementById('showOctRD').classList.add('active'); });
 
     document.getElementById('showEdges').addEventListener('change', e => { showEdges = e.target.checked; buildScene(); });
+    document.getElementById('showParentFaces').addEventListener('change', e => { showParentFaces = e.target.checked; buildScene(); });
+    document.getElementById('showParentEdges').addEventListener('change', e => { showParentEdges = e.target.checked; buildScene(); });
     document.getElementById('showWireframes').addEventListener('change', e => { showWireframes = e.target.checked; buildScene(); });
     document.getElementById('faceOpacity').addEventListener('input', e => {
         faceOpacity = parseFloat(e.target.value);
         document.getElementById('opacVal').textContent = faceOpacity.toFixed(2);
         buildScene();
     });
-    document.getElementById('explodeMode').addEventListener('change', e => {
-        explodeMode = e.target.checked;
-        document.getElementById('explodeRow').style.display = explodeMode ? 'flex' : 'none';
-        buildScene();
-    });
-    document.getElementById('explodeDist').addEventListener('input', e => {
-        explodeDist = parseFloat(e.target.value);
-        document.getElementById('explVal').textContent = explodeDist.toFixed(2);
+    document.getElementById('overlayOpacity').addEventListener('input', e => {
+        overlayOpacity = parseFloat(e.target.value);
+        document.getElementById('ovrVal').textContent = overlayOpacity.toFixed(2);
         buildScene();
     });
 
