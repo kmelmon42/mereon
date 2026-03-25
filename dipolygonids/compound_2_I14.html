@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Compound of 2 × I₁₄ Vampires — Octahedral Symmetry</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:#08080f;color:#d8dce6;overflow:hidden;}
+#ui{position:fixed;top:0;left:0;background:rgba(8,8,18,0.97);padding:18px;z-index:100;width:290px;height:100vh;overflow-y:auto;border-right:1px solid rgba(255,255,255,0.06);}
+#ui::-webkit-scrollbar{width:4px;} #ui::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:2px;}
+h1{font-size:0.82rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#8ab4f8;margin-bottom:4px;}
+.sub{font-size:0.66rem;color:#556;line-height:1.5;margin-bottom:14px;}
+h2{font-size:0.62rem;font-weight:500;color:#445;margin:12px 0 6px;letter-spacing:0.1em;text-transform:uppercase;padding-top:10px;border-top:1px solid rgba(255,255,255,0.04);}
+.cr{margin:5px 0;font-size:0.7rem;display:flex;align-items:center;gap:8px;}
+.cr label{display:flex;align-items:center;gap:6px;cursor:pointer;color:#778;}
+input[type=checkbox]{accent-color:#8ab4f8;}
+input[type=range]{width:100%;accent-color:#8ab4f8;height:3px;}
+.val{font-family:'JetBrains Mono',monospace;font-size:0.62rem;color:#8ab4f8;min-width:34px;text-align:right;}
+button{font-family:'DM Sans';background:rgba(255,255,255,0.04);color:#889;border:1px solid rgba(255,255,255,0.08);padding:5px 10px;border-radius:4px;cursor:pointer;font-size:0.64rem;font-weight:500;transition:all 0.2s;margin:2px;}
+button:hover{background:rgba(255,255,255,0.08);color:#aab;}
+.sw{width:12px;height:12px;border-radius:2px;display:inline-block;border:1px solid rgba(255,255,255,0.15);}
+.stats{font-family:'JetBrains Mono',monospace;font-size:0.58rem;color:#445;margin-top:10px;padding:10px;background:rgba(0,0,0,0.3);border-radius:6px;line-height:1.8;}
+.stats .hl{color:#8ab4f8;}
+.stats strong{color:#667;}
+#cv{width:100vw;height:100vh;}
+</style>
+</head>
+<body>
+<div id="ui">
+<h1>Compound of 2 × I₁₄</h1>
+<div class="sub">
+Two Vampires (20{3}+20{3} each) in octahedral symmetry — related by 90° rotation. At 60° they collapse to the compound of 2 icosahedra.
+</div>
+
+<h2>I₁₄ Animation</h2>
+<div class="cr"><label><input type="checkbox" id="anim" checked> Animate</label></div>
+<div class="cr"><label>Angle</label><input type="range" id="angle" min="0" max="60" value="60" step="0.2"><span class="val" id="angleV">60°</span></div>
+<div class="cr"><label>Speed</label><input type="range" id="speed" min="0.05" max="2" value="0.3" step="0.05"><span class="val" id="speedV">0.30</span></div>
+<div style="display:flex;gap:3px;margin:5px 0;">
+<button onclick="setA(60)">Collapsed (60°)</button>
+<button onclick="setA(30)">Mid</button>
+<button onclick="setA(0)">Open (0°)</button>
+</div>
+
+<h2>Show / Hide</h2>
+<div class="cr"><label><input type="checkbox" id="showA" checked> <span class="sw" style="background:#22aa22"></span> I₁₄ A (green)</label></div>
+<div class="cr"><label><input type="checkbox" id="showB" checked> <span class="sw" style="background:#cccc00"></span> I₁₄ B (yellow)</label></div>
+
+<h2>Display</h2>
+<div class="cr"><label><input type="checkbox" id="showFaces" checked> Faces</label></div>
+<div class="cr"><label><input type="checkbox" id="showEdges" checked> Edges</label></div>
+<div class="cr"><label><input type="checkbox" id="autoRot" checked> Auto rotate</label></div>
+<div class="cr"><label>Opacity</label><input type="range" id="opac" min="0.1" max="1.0" value="1.0" step="0.05"><span class="val" id="opacV">1.00</span></div>
+
+<div class="stats">
+<strong>Compound structure</strong><br>
+2 × I₁₄ = 2 × (20+20) = <span class="hl">80 triangles</span><br>
+Related by 90° rotation around Z<br><br>
+<strong>Symmetry: O (chiral octahedral)</strong><br>
+<span class="hl">3</span> four-fold axes · <span class="hl">4</span> three-fold axes · <span class="hl">6</span> two-fold axes<br><br>
+At 60°: compound of 2 icosahedra<br>
+At 0°: two interpenetrating Vampires
+</div>
+</div>
+<div id="cv"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+'use strict';
+const P=(1+Math.sqrt(5))/2;
+function $(id){return document.getElementById(id);}
+
+// ═══════════════════════════════════════════════════════════
+// I₃ DATA (shared geometry for I₁₄)
+// ═══════════════════════════════════════════════════════════
+const I3_DATA=(()=>{
+  const IV=[[0,1,P],[0,-1,P],[0,1,-P],[0,-1,-P],[1,P,0],[-1,P,0],[1,-P,0],[-1,-P,0],[P,0,1],[-P,0,1],[P,0,-1],[-P,0,-1]];
+  const IE=[];
+  for(let i=0;i<12;i++)for(let j=i+1;j<12;j++){
+    if(Math.abs(IV[i].reduce((s,v,k)=>s+(v-IV[j][k])**2,0)-4)<0.5) IE.push([i,j]);
+  }
+  const fs=new Set();
+  for(let i=0;i<12;i++){
+    const nb=IE.filter(e=>e[0]===i||e[1]===i).map(e=>e[0]===i?e[1]:e[0]);
+    for(let a=0;a<nb.length;a++)for(let b=a+1;b<nb.length;b++){
+      if(IE.some(e=>(e[0]===nb[a]&&e[1]===nb[b])||(e[0]===nb[b]&&e[1]===nb[a]))){
+        const s=[i,nb[a],nb[b]].sort((a,b)=>a-b);fs.add(s.join(','));
+      }
+    }
+  }
+  const IF=[...fs].map(s=>s.split(',').map(Number));
+  const IDV=IE.map(([i,j])=>[(IV[i][0]+IV[j][0])/2,(IV[i][1]+IV[j][1])/2,(IV[i][2]+IV[j][2])/2]);
+  const tris=IF.map(f=>{
+    const tv=[];
+    for(const[a,b]of[[f[0],f[1]],[f[1],f[2]],[f[0],f[2]]]) tv.push(IE.findIndex(e=>(e[0]===a&&e[1]===b)||(e[0]===b&&e[1]===a)));
+    return tv;
+  });
+  const triData=tris.map(f=>{
+    const c=[0,0,0];for(const vi of f){c[0]+=IDV[vi][0]/3;c[1]+=IDV[vi][1]/3;c[2]+=IDV[vi][2]/3;}
+    const h=Math.sqrt(c[0]**2+c[1]**2+c[2]**2);const n=c.map(x=>x/h);
+    const ip=f.map(vi=>[IDV[vi][0]-h*n[0],IDV[vi][1]-h*n[1],IDV[vi][2]-h*n[2]]);
+    return{normal:n,h0:h,inplane:ip};
+  });
+  const adj=IF.map(()=>[]);
+  for(let i=0;i<20;i++)for(let j=i+1;j<20;j++){
+    if(IF[i].filter(v=>IF[j].includes(v)).length===2){adj[i].push(j);adj[j].push(i);}
+  }
+  const dirs=new Array(20).fill(0);dirs[0]=1;
+  const q=[0],vis=new Set([0]);
+  while(q.length>0){const i=q.shift();for(const j of adj[i]){if(!vis.has(j)){dirs[j]=-dirs[i];vis.add(j);q.push(j);}}}
+  return{IDV,tris,triData,dirs};
+})();
+
+// ═══════════════════════════════════════════════════════════
+// Compound rotations: identity and 90° around Z
+// R90z: (x,y,z) -> (-y,x,z)
+// ═══════════════════════════════════════════════════════════
+const COMPOUND_QUATS=[
+  new THREE.Quaternion(), // identity
+  new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,0,1), Math.PI/2), // 90° around Z
+];
+
+const COLORS_A=[0x22aa22, 0xcccc00];  // family A per copy: green, yellow
+const COLORS_B=[0x44cc44, 0xeeee44];  // family B per copy: lighter green, lighter yellow
+const EDGE_COL=[0x116611, 0x888800];
+
+// ═══════════════════════════════════════════════════════════
+// THREE.JS SETUP
+// ═══════════════════════════════════════════════════════════
+const cv=document.getElementById('cv'),sc=new THREE.Scene();
+sc.background=new THREE.Color(0x08080f);
+const cam=new THREE.PerspectiveCamera(50,innerWidth/innerHeight,.1,1000);
+cam.position.set(0,0,5.5);
+const ren=new THREE.WebGLRenderer({antialias:true});
+ren.setSize(innerWidth,innerHeight);ren.setPixelRatio(Math.min(devicePixelRatio,2));cv.appendChild(ren.domElement);
+sc.add(new THREE.AmbientLight(0xffffff,.45));
+const dl1=new THREE.DirectionalLight(0xffffff,.65);dl1.position.set(5,5,5);sc.add(dl1);
+const dl2=new THREE.DirectionalLight(0xffffff,.3);dl2.position.set(-4,-2,4);sc.add(dl2);
+const MG=new THREE.Group();sc.add(MG);
+
+// ═══════════════════════════════════════════════════════════
+// BUILD
+// ═══════════════════════════════════════════════════════════
+const SC=0.65;
+const copyVis=[true,true];
+
+function rebuild(angleDeg){
+  while(MG.children.length)MG.remove(MG.children[0]);
+  const phi=(60-angleDeg)*Math.PI/180;
+  const showF=$('showFaces').checked, showE=$('showEdges').checked;
+  const opacity=+$('opac').value;
+
+  for(let ci=0;ci<2;ci++){
+    if(!copyVis[ci]) continue;
+    const compQ=COMPOUND_QUATS[ci];
+    const colA=COLORS_A[ci], colB=COLORS_B[ci], colE=EDGE_COL[ci];
+
+    for(const dirMult of [1,-1]){
+      const faceColor=dirMult===1?colA:colB;
+      const faceOpacity=dirMult===1?opacity:opacity*0.7;
+
+      for(let fi=0;fi<20;fi++){
+        const td=I3_DATA.triData[fi];
+        const h=td.h0*Math.cos(phi);
+        const n=new THREE.Vector3(td.normal[0],td.normal[1],td.normal[2]);
+        const rotAngle=dirMult*I3_DATA.dirs[fi]*phi;
+        const q=new THREE.Quaternion().setFromAxisAngle(n,rotAngle);
+
+        const verts=td.inplane.map(ip=>{
+          const v=new THREE.Vector3(ip[0],ip[1],ip[2]).applyQuaternion(q);
+          v.add(n.clone().multiplyScalar(h));
+          v.multiplyScalar(SC);
+          v.applyQuaternion(compQ);
+          return v;
+        });
+
+        if(showE){
+          MG.add(new THREE.Line(
+            new THREE.BufferGeometry().setFromPoints([...verts,verts[0]]),
+            new THREE.LineBasicMaterial({color:colE,transparent:true,opacity:0.6})
+          ));
+        }
+        if(showF){
+          const a=new Float32Array([verts[0].x,verts[0].y,verts[0].z,verts[1].x,verts[1].y,verts[1].z,verts[2].x,verts[2].y,verts[2].z]);
+          const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(a,3));g.computeVertexNormals();
+          MG.add(new THREE.Mesh(g,new THREE.MeshStandardMaterial({
+            color:faceColor,side:THREE.DoubleSide,transparent:faceOpacity<1,opacity:faceOpacity,roughness:0.4,
+            polygonOffset:true,polygonOffsetFactor:1,polygonOffsetUnits:1
+          })));
+        }
+      }
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// CONTROLS
+// ═══════════════════════════════════════════════════════════
+let curAngle=60, spd=0.3, animDir=-1;
+
+$('angle').oninput=e=>{curAngle=+e.target.value;$('angleV').textContent=curAngle.toFixed(0)+'°';rebuild(curAngle);};
+$('speed').oninput=e=>{spd=+e.target.value;$('speedV').textContent=spd.toFixed(2);};
+['showFaces','showEdges'].forEach(id=>$(id).onchange=()=>rebuild(curAngle));
+$('opac').oninput=e=>{$('opacV').textContent=(+e.target.value).toFixed(2);rebuild(curAngle);};
+$('showA').onchange=e=>{copyVis[0]=e.target.checked;rebuild(curAngle);};
+$('showB').onchange=e=>{copyVis[1]=e.target.checked;rebuild(curAngle);};
+window.setA=a=>{curAngle=a;$('angle').value=a;$('angleV').textContent=a+'°';rebuild(a);};
+
+rebuild(60);
+
+// ═══════════════════════════════════════════════════════════
+// INTERACTION & LOOP
+// ═══════════════════════════════════════════════════════════
+let drag=false,pm={x:0,y:0};
+cv.onmousedown=e=>{drag=true;pm={x:e.clientX,y:e.clientY};};
+cv.onmousemove=e=>{if(drag){MG.rotation.y+=(e.clientX-pm.x)*.01;MG.rotation.x+=(e.clientY-pm.y)*.01;pm={x:e.clientX,y:e.clientY};}};
+cv.onmouseup=cv.onmouseleave=()=>drag=false;
+cv.onwheel=e=>{e.preventDefault();cam.position.multiplyScalar(1+e.deltaY*.001);};
+onresize=()=>{cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();ren.setSize(innerWidth,innerHeight);};
+
+(function loop(){
+  requestAnimationFrame(loop);
+  if($('anim').checked){
+    curAngle+=spd*animDir;
+    if(curAngle<=0){curAngle=0;animDir=1;}
+    if(curAngle>=60){curAngle=60;animDir=-1;}
+    $('angle').value=curAngle;$('angleV').textContent=curAngle.toFixed(0)+'°';
+    rebuild(curAngle);
+  }
+  if($('autoRot').checked&&!drag)MG.rotation.y+=.004;
+  ren.render(sc,cam);
+})();
+</script>
+</body>
+</html>
