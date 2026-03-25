@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Compound of 5 × O₄ — Animated Cubes</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:#08080f;color:#d8dce6;overflow:hidden;}
+#ui{position:fixed;top:0;left:0;background:rgba(8,8,18,0.97);padding:18px;z-index:100;width:290px;height:100vh;overflow-y:auto;border-right:1px solid rgba(255,255,255,0.06);}
+#ui::-webkit-scrollbar{width:4px;} #ui::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:2px;}
+h1{font-size:0.82rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#8ab4f8;margin-bottom:4px;}
+.sub{font-size:0.66rem;color:#556;line-height:1.5;margin-bottom:14px;}
+h2{font-size:0.62rem;font-weight:500;color:#445;margin:12px 0 6px;letter-spacing:0.1em;text-transform:uppercase;padding-top:10px;border-top:1px solid rgba(255,255,255,0.04);}
+.cr{margin:5px 0;font-size:0.7rem;display:flex;align-items:center;gap:8px;}
+.cr label{display:flex;align-items:center;gap:6px;cursor:pointer;color:#778;}
+input[type=checkbox]{accent-color:#8ab4f8;}
+input[type=range]{width:100%;accent-color:#8ab4f8;height:3px;}
+.val{font-family:'JetBrains Mono',monospace;font-size:0.62rem;color:#8ab4f8;min-width:34px;text-align:right;}
+button{font-family:'DM Sans';background:rgba(255,255,255,0.04);color:#889;border:1px solid rgba(255,255,255,0.08);padding:5px 10px;border-radius:4px;cursor:pointer;font-size:0.64rem;font-weight:500;transition:all 0.2s;margin:2px;}
+button:hover{background:rgba(255,255,255,0.08);color:#aab;}
+.sw{width:12px;height:12px;border-radius:2px;display:inline-block;border:1px solid rgba(255,255,255,0.15);}
+.stats{font-family:'JetBrains Mono',monospace;font-size:0.58rem;color:#445;margin-top:10px;padding:10px;background:rgba(0,0,0,0.3);border-radius:6px;line-height:1.8;}
+.stats .hl{color:#8ab4f8;}
+#cv{width:100vw;height:100vh;}
+</style>
+</head>
+<body>
+<div id="ui">
+<h1>Compound of 5 × O₄</h1>
+<div class="sub">
+Five copies of the O₄ dipolygonid (6{4}+6{4} counter-rotating squares), positioned with icosahedral symmetry. At ψ=0 this is the compound of 5 cubes.
+</div>
+
+<h2>O₄ Animation</h2>
+<div class="cr"><label><input type="checkbox" id="anim" checked> Animate</label></div>
+<div class="cr"><label>ψ angle</label><input type="range" id="psi" min="0" max="60" value="0" step="0.2"><span class="val" id="psiV">0°</span></div>
+<div class="cr"><label>Speed</label><input type="range" id="speed" min="0.05" max="2" value="0.25" step="0.05"><span class="val" id="speedV">0.25</span></div>
+<div style="display:flex;gap:3px;margin:5px 0;">
+<button onclick="setP(0)">Cube (0°)</button>
+<button onclick="setP(30)">Mid</button>
+<button onclick="setP(60)">Open (60°)</button>
+</div>
+
+<h2>Copies</h2>
+<div class="cr"><label><input type="checkbox" class="cc" data-i="0" checked> <span class="sw" style="background:#66ff66"></span> Cube 1 (0°)</label></div>
+<div class="cr"><label><input type="checkbox" class="cc" data-i="1" checked> <span class="sw" style="background:#ffff66"></span> Cube 2 (72°)</label></div>
+<div class="cr"><label><input type="checkbox" class="cc" data-i="2" checked> <span class="sw" style="background:#cc88ff"></span> Cube 3 (144°)</label></div>
+<div class="cr"><label><input type="checkbox" class="cc" data-i="3" checked> <span class="sw" style="background:#ff9966"></span> Cube 4 (216°)</label></div>
+<div class="cr"><label><input type="checkbox" class="cc" data-i="4" checked> <span class="sw" style="background:#66ccff"></span> Cube 5 (288°)</label></div>
+
+<h2>Display</h2>
+<div class="cr"><label><input type="checkbox" id="showFaces" checked> Faces</label></div>
+<div class="cr"><label><input type="checkbox" id="showEdges" checked> Edges</label></div>
+<div class="cr"><label><input type="checkbox" id="autoRot" checked> Auto rotate</label></div>
+<div class="cr"><label>Opacity</label><input type="range" id="opac" min="0.15" max="1" value="0.55" step="0.05"><span class="val" id="opacV">0.55</span></div>
+
+<div class="stats">
+5 × O₄ = 5 × (6+6) = <span class="hl">60 squares</span><br><br>
+At ψ=0: compound of 5 cubes<br>
+(dual to compound of 5 octahedra)<br><br>
+<span class="hl">20</span> unique vertices on a dodecahedron<br>
+Symmetry: <span class="hl">I</span> (chiral icosahedral, order 60)
+</div>
+</div>
+<div id="cv"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+'use strict';
+const PHI=(1+Math.sqrt(5))/2;
+const FIVE_FOLD=new THREE.Vector3(0,1,PHI).normalize();
+function $(id){return document.getElementById(id);}
+
+// 5 copy colors: A family (saturated) and B family (lighter)
+const COL_A=[0x33bb33,0xbbbb11,0x8855cc,0xbb6622,0x3399bb];
+const COL_B=[0x66ee66,0xeeee55,0xbb88ee,0xee9955,0x66ccee];
+const COL_E=[0x228822,0x888811,0x553388,0x884411,0x226688];
+
+// ═══════════════════════════════════════════════════════════
+// O₄ FACE DATA — 6 cube faces
+// Cube at (±1,±1,±1). Each face: normal, in-plane verts (verts - normal).
+// ═══════════════════════════════════════════════════════════
+const O4_FACES=[
+  {n:[1,0,0], ip:[[0,1,1],[0,-1,1],[0,-1,-1],[0,1,-1]]},
+  {n:[-1,0,0],ip:[[0,1,-1],[0,-1,-1],[0,-1,1],[0,1,1]]},
+  {n:[0,1,0], ip:[[1,0,1],[1,0,-1],[-1,0,-1],[-1,0,1]]},
+  {n:[0,-1,0],ip:[[1,0,-1],[1,0,1],[-1,0,1],[-1,0,-1]]},
+  {n:[0,0,1], ip:[[1,1,0],[-1,1,0],[-1,-1,0],[1,-1,0]]},
+  {n:[0,0,-1],ip:[[1,-1,0],[-1,-1,0],[-1,1,0],[1,1,0]]},
+];
+
+// Scale: cube vertices at (±1,±1,±1) → vertex radius √3.
+// Scale to match the compound of 5 tetrahedra (vertex radius 1).
+const SC=1.0/Math.sqrt(3);
+
+// Compound quaternions
+const COMP_Q=[];
+for(let i=0;i<5;i++){
+  COMP_Q.push(new THREE.Quaternion().setFromAxisAngle(FIVE_FOLD,2*Math.PI*i/5));
+}
+
+// ═══════════════════════════════════════════════════════════
+// THREE.JS
+// ═══════════════════════════════════════════════════════════
+const cv=document.getElementById('cv'),sc=new THREE.Scene();
+sc.background=new THREE.Color(0x08080f);
+const cam=new THREE.PerspectiveCamera(50,innerWidth/innerHeight,.1,1000);
+cam.position.set(0,0,4.5);
+const ren=new THREE.WebGLRenderer({antialias:true});
+ren.setSize(innerWidth,innerHeight);ren.setPixelRatio(Math.min(devicePixelRatio,2));cv.appendChild(ren.domElement);
+sc.add(new THREE.AmbientLight(0xffffff,.5));
+const dl1=new THREE.DirectionalLight(0xffffff,.65);dl1.position.set(5,5,5);sc.add(dl1);
+const dl2=new THREE.DirectionalLight(0xffffff,.3);dl2.position.set(-4,-2,4);sc.add(dl2);
+const MG=new THREE.Group();sc.add(MG);
+
+const copyVis=[true,true,true,true,true];
+
+function rebuild(psiDeg){
+  while(MG.children.length)MG.remove(MG.children[0]);
+  const psi=psiDeg*Math.PI/180;
+  const showF=$('showFaces').checked,showE=$('showEdges').checked;
+  const opacity=+$('opac').value;
+
+  for(let ci=0;ci<5;ci++){
+    if(!copyVis[ci])continue;
+    const cq=COMP_Q[ci];
+    const colA=COL_A[ci],colB=COL_B[ci],colE=COL_E[ci];
+
+    for(const dirSign of [1,-1]){
+      const faceCol=dirSign===1?colA:colB;
+      const faceOp=dirSign===1?opacity:opacity*0.8;
+
+      for(const fd of O4_FACES){
+        const n=new THREE.Vector3(fd.n[0],fd.n[1],fd.n[2]);
+        const h=Math.cos(psi); // h0=1 for cube
+        const q=new THREE.Quaternion().setFromAxisAngle(n,dirSign*psi);
+
+        const verts=fd.ip.map(ip=>{
+          const v=new THREE.Vector3(ip[0],ip[1],ip[2]).applyQuaternion(q);
+          v.add(n.clone().multiplyScalar(h));
+          v.multiplyScalar(SC);
+          v.applyQuaternion(cq);
+          return v;
+        });
+
+        if(showE){
+          MG.add(new THREE.Line(
+            new THREE.BufferGeometry().setFromPoints([...verts,verts[0]]),
+            new THREE.LineBasicMaterial({color:colE,transparent:true,opacity:0.7})
+          ));
+        }
+        if(showF){
+          // Triangulate quad as 2 triangles
+          const pos=new Float32Array([
+            verts[0].x,verts[0].y,verts[0].z, verts[1].x,verts[1].y,verts[1].z, verts[2].x,verts[2].y,verts[2].z,
+            verts[0].x,verts[0].y,verts[0].z, verts[2].x,verts[2].y,verts[2].z, verts[3].x,verts[3].y,verts[3].z,
+          ]);
+          const g=new THREE.BufferGeometry();
+          g.setAttribute('position',new THREE.BufferAttribute(pos,3));
+          g.computeVertexNormals();
+          MG.add(new THREE.Mesh(g,new THREE.MeshStandardMaterial({
+            color:faceCol,side:THREE.DoubleSide,
+            transparent:faceOp<1,opacity:faceOp,roughness:.35,metalness:.1,
+            polygonOffset:true,polygonOffsetFactor:ci*2+dirSign,polygonOffsetUnits:ci*2+dirSign
+          })));
+        }
+      }
+    }
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+// CONTROLS
+// ═══════════════════════════════════════════════════════════
+let curPsi=0,spd=0.25,animDir=1;
+
+$('psi').oninput=e=>{curPsi=+e.target.value;$('psiV').textContent=curPsi.toFixed(0)+'°';rebuild(curPsi);};
+$('speed').oninput=e=>{spd=+e.target.value;$('speedV').textContent=spd.toFixed(2);};
+['showFaces','showEdges'].forEach(id=>$(id).onchange=()=>rebuild(curPsi));
+$('opac').oninput=e=>{$('opacV').textContent=(+e.target.value).toFixed(2);rebuild(curPsi);};
+document.querySelectorAll('.cc').forEach(el=>{
+  el.onchange=e=>{copyVis[+e.target.dataset.i]=e.target.checked;rebuild(curPsi);};
+});
+window.setP=p=>{curPsi=p;$('psi').value=p;$('psiV').textContent=p+'°';rebuild(p);};
+
+rebuild(0);
+
+// ═══════════════════════════════════════════════════════════
+// INTERACTION & LOOP
+// ═══════════════════════════════════════════════════════════
+let drag=false,pm={x:0,y:0};
+cv.onmousedown=e=>{drag=true;pm={x:e.clientX,y:e.clientY};};
+cv.onmousemove=e=>{if(drag){MG.rotation.y+=(e.clientX-pm.x)*.01;MG.rotation.x+=(e.clientY-pm.y)*.01;pm={x:e.clientX,y:e.clientY};}};
+cv.onmouseup=cv.onmouseleave=()=>drag=false;
+cv.onwheel=e=>{e.preventDefault();cam.position.multiplyScalar(1+e.deltaY*.001);};
+onresize=()=>{cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();ren.setSize(innerWidth,innerHeight);};
+
+(function loop(){
+  requestAnimationFrame(loop);
+  if($('anim').checked){
+    curPsi+=spd*animDir;
+    if(curPsi>=60){curPsi=60;animDir=-1;}
+    if(curPsi<=0){curPsi=0;animDir=1;}
+    $('psi').value=curPsi;$('psiV').textContent=curPsi.toFixed(0)+'°';
+    rebuild(curPsi);
+  }
+  if($('autoRot').checked&&!drag)MG.rotation.y+=.003;
+  ren.render(sc,cam);
+})();
+</script>
+</body>
+</html>
