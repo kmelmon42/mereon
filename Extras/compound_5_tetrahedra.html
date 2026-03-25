@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Compound of 5 Tetrahedra — Icosahedral Symmetry</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;700&display=swap');
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'DM Sans',sans-serif;background:#08080f;color:#d8dce6;overflow:hidden;}
+#ui{position:fixed;top:0;left:0;background:rgba(8,8,18,0.97);padding:18px;z-index:100;width:290px;height:100vh;overflow-y:auto;border-right:1px solid rgba(255,255,255,0.06);}
+#ui::-webkit-scrollbar{width:4px;} #ui::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.1);border-radius:2px;}
+h1{font-size:0.82rem;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:#8ab4f8;margin-bottom:4px;}
+.sub{font-size:0.66rem;color:#556;line-height:1.5;margin-bottom:14px;}
+h2{font-size:0.62rem;font-weight:500;color:#445;margin:12px 0 6px;letter-spacing:0.1em;text-transform:uppercase;padding-top:10px;border-top:1px solid rgba(255,255,255,0.04);}
+.cr{margin:5px 0;font-size:0.7rem;display:flex;align-items:center;gap:8px;}
+.cr label{display:flex;align-items:center;gap:6px;cursor:pointer;color:#778;}
+input[type=checkbox]{accent-color:#8ab4f8;}
+input[type=range]{width:100%;accent-color:#8ab4f8;height:3px;}
+.val{font-family:'JetBrains Mono',monospace;font-size:0.62rem;color:#8ab4f8;min-width:34px;text-align:right;}
+.sw{width:12px;height:12px;border-radius:2px;display:inline-block;border:1px solid rgba(255,255,255,0.15);}
+.stats{font-family:'JetBrains Mono',monospace;font-size:0.58rem;color:#445;margin-top:10px;padding:10px;background:rgba(0,0,0,0.3);border-radius:6px;line-height:1.8;}
+.stats .hl{color:#8ab4f8;}
+.stats strong{color:#667;}
+#cv{width:100vw;height:100vh;}
+</style>
+</head>
+<body>
+<div id="ui">
+<h1>Compound of 5 Tetrahedra</h1>
+<div class="sub">
+A classic uniform compound. 5 regular tetrahedra positioned with full chiral icosahedral symmetry (I, order 60). 20 vertices, 30 edges, 20 faces.
+</div>
+
+<h2>Copies</h2>
+<div class="cr"><label><input type="checkbox" class="cc" data-i="0" checked> <span class="sw" style="background:#66ff66"></span> Tetrahedron 1 (0°)</label></div>
+<div class="cr"><label><input type="checkbox" class="cc" data-i="1" checked> <span class="sw" style="background:#ffff66"></span> Tetrahedron 2 (72°)</label></div>
+<div class="cr"><label><input type="checkbox" class="cc" data-i="2" checked> <span class="sw" style="background:#cc88ff"></span> Tetrahedron 3 (144°)</label></div>
+<div class="cr"><label><input type="checkbox" class="cc" data-i="3" checked> <span class="sw" style="background:#ff9966"></span> Tetrahedron 4 (216°)</label></div>
+<div class="cr"><label><input type="checkbox" class="cc" data-i="4" checked> <span class="sw" style="background:#66ccff"></span> Tetrahedron 5 (288°)</label></div>
+
+<h2>Display</h2>
+<div class="cr"><label><input type="checkbox" id="showFaces" checked> Faces</label></div>
+<div class="cr"><label><input type="checkbox" id="showEdges" checked> Edges</label></div>
+<div class="cr"><label><input type="checkbox" id="showVerts"> Vertices</label></div>
+<div class="cr"><label><input type="checkbox" id="autoRot" checked> Auto rotate</label></div>
+<div class="cr"><label>Opacity</label><input type="range" id="opac" min="0.2" max="1" value="0.7" step="0.05"><span class="val" id="opacV">0.70</span></div>
+
+<div class="stats">
+<strong>Construction</strong><br>
+Tetrahedron inscribed in cube: (±1,±1,±1)<br>
+Rotated by 72°×k around (0, 1, φ)<br><br>
+<strong>Symmetry: I (chiral icosahedral)</strong><br>
+<span class="hl">6</span> five-fold · <span class="hl">10</span> three-fold · <span class="hl">15</span> two-fold<br><br>
+<strong>Why it works</strong><br>
+T ∩ I = T (order 12)<br>
+|I|/|T| = 60/12 = <span class="hl">5 copies</span><br><br>
+<span class="hl">20</span> vertices sit on a regular dodecahedron
+</div>
+</div>
+<div id="cv"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+'use strict';
+const PHI=(1+Math.sqrt(5))/2;
+const FIVE_FOLD=new THREE.Vector3(0,1,PHI).normalize();
+function $(id){return document.getElementById(id);}
+
+const COLORS=[0x44dd44,0xdddd22,0xaa66ee,0xdd7733,0x44aadd];
+const EDGE_COLS=[0x228822,0x888811,0x663399,0x884411,0x226688];
+
+// Regular tetrahedron inscribed in cube
+const TET_V=[[1,1,1],[1,-1,-1],[-1,1,-1],[-1,-1,1]];
+const TET_F=[[0,1,2],[0,2,3],[0,3,1],[1,3,2]];
+const TET_E=[[0,1],[0,2],[0,3],[1,2],[1,3],[2,3]];
+
+// Scale to unit vertex radius
+const SC=1.0/Math.sqrt(3);
+
+// Precompute all 5 rotated tetrahedra
+const COPIES=[];
+for(let i=0;i<5;i++){
+  const q=new THREE.Quaternion().setFromAxisAngle(FIVE_FOLD, 2*Math.PI*i/5);
+  const verts=TET_V.map(v=>{
+    const p=new THREE.Vector3(v[0]*SC,v[1]*SC,v[2]*SC);
+    p.applyQuaternion(q);
+    return p;
+  });
+  COPIES.push(verts);
+}
+
+// THREE.JS
+const cv=document.getElementById('cv'),sc=new THREE.Scene();
+sc.background=new THREE.Color(0x08080f);
+const cam=new THREE.PerspectiveCamera(50,innerWidth/innerHeight,.1,1000);
+cam.position.set(0,0,4);
+const ren=new THREE.WebGLRenderer({antialias:true});
+ren.setSize(innerWidth,innerHeight);ren.setPixelRatio(Math.min(devicePixelRatio,2));cv.appendChild(ren.domElement);
+sc.add(new THREE.AmbientLight(0xffffff,.5));
+const dl1=new THREE.DirectionalLight(0xffffff,.65);dl1.position.set(5,5,5);sc.add(dl1);
+const dl2=new THREE.DirectionalLight(0xffffff,.3);dl2.position.set(-4,-2,4);sc.add(dl2);
+const MG=new THREE.Group();sc.add(MG);
+
+const copyVis=[true,true,true,true,true];
+
+function rebuild(){
+  while(MG.children.length)MG.remove(MG.children[0]);
+  const showF=$('showFaces').checked,showE=$('showEdges').checked,showV=$('showVerts').checked;
+  const opacity=+$('opac').value;
+
+  for(let ci=0;ci<5;ci++){
+    if(!copyVis[ci])continue;
+    const verts=COPIES[ci];
+    const col=COLORS[ci],ecol=EDGE_COLS[ci];
+
+    if(showF){
+      const pos=[];
+      for(const f of TET_F){
+        const v0=verts[f[0]],v1=verts[f[1]],v2=verts[f[2]];
+        pos.push(v0.x,v0.y,v0.z,v1.x,v1.y,v1.z,v2.x,v2.y,v2.z);
+      }
+      const g=new THREE.BufferGeometry();
+      g.setAttribute('position',new THREE.Float32BufferAttribute(pos,3));
+      g.computeVertexNormals();
+      MG.add(new THREE.Mesh(g,new THREE.MeshStandardMaterial({
+        color:col,side:THREE.DoubleSide,transparent:opacity<1,opacity,
+        roughness:.35,metalness:.1,
+        polygonOffset:true,polygonOffsetFactor:ci,polygonOffsetUnits:ci
+      })));
+    }
+
+    if(showE){
+      const ep=[];
+      for(const[a,b]of TET_E){
+        ep.push(verts[a].x,verts[a].y,verts[a].z,verts[b].x,verts[b].y,verts[b].z);
+      }
+      const g=new THREE.BufferGeometry();
+      g.setAttribute('position',new THREE.Float32BufferAttribute(ep,3));
+      MG.add(new THREE.LineSegments(g,new THREE.LineBasicMaterial({color:ecol})));
+    }
+
+    if(showV){
+      const sg=new THREE.SphereGeometry(0.035,10,10);
+      for(const v of verts){
+        const m=new THREE.Mesh(sg,new THREE.MeshStandardMaterial({color:col,emissive:col,emissiveIntensity:.3}));
+        m.position.copy(v);MG.add(m);
+      }
+    }
+  }
+}
+
+rebuild();
+
+['showFaces','showEdges','showVerts'].forEach(id=>$(id).onchange=rebuild);
+$('opac').oninput=e=>{$('opacV').textContent=(+e.target.value).toFixed(2);rebuild();};
+document.querySelectorAll('.cc').forEach(el=>{
+  el.onchange=e=>{copyVis[+e.target.dataset.i]=e.target.checked;rebuild();};
+});
+
+let drag=false,pm={x:0,y:0};
+cv.onmousedown=e=>{drag=true;pm={x:e.clientX,y:e.clientY};};
+cv.onmousemove=e=>{if(drag){MG.rotation.y+=(e.clientX-pm.x)*.01;MG.rotation.x+=(e.clientY-pm.y)*.01;pm={x:e.clientX,y:e.clientY};}};
+cv.onmouseup=cv.onmouseleave=()=>drag=false;
+cv.onwheel=e=>{e.preventDefault();cam.position.multiplyScalar(1+e.deltaY*.001);};
+onresize=()=>{cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix();ren.setSize(innerWidth,innerHeight);};
+
+(function loop(){
+  requestAnimationFrame(loop);
+  if($('autoRot').checked&&!drag)MG.rotation.y+=.004;
+  ren.render(sc,cam);
+})();
+</script>
+</body>
+</html>
